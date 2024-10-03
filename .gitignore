@@ -1,0 +1,35 @@
+# ビルド出力
+build/
+*.o
+*.obj
+*.exe
+*.out
+*.app
+
+# IDE/エディタ固有のファイル
+.vscode/
+.idea/
+*.swp
+*~
+
+# macOS固有のファイル
+.DS_Store
+
+# Windowsのサムネイルファイル
+Thumbs.db
+
+# コンパイラ生成ファイル
+*.dSYM/
+
+# 依存関係管理
+/vendor/
+
+# SDL2関連（必要に応じて）
+# SDL2.dll
+
+# その他のプロジェクト固有のファイル
+# config.ini
+# secrets.txt
+
+# ログファイル
+*.log
