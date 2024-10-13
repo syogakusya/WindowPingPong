@@ -7,7 +7,7 @@ const int windowWidth = 200;
 const int windowHeight = 200;
 const float paddleSpeed = 600.0f;
 
-Game::Game() : mIsRunning(true), mTicksCount(0), mPaddleDir(0.0f)
+Game::Game() : mIsRunning(true), mTicksCount(0), mPaddleDir(0.0f), mScore(0), mCurrentState(GameState::Start)
 {
 }
 
@@ -198,7 +198,7 @@ void Game::UpdateGame()
     mBall.screenPos.y += mBallVel.y * deltaTime;
   }
 
-  // ボールとパドルの衝突判定を修正
+  // ボールとパドルの衝突判定
   float diffX = mPaddle.GetWorldPos().x - mBall.GetWorldPos().x;
   float diffY = mPaddle.GetWorldPos().y - mBall.GetWorldPos().y;
 
@@ -254,18 +254,11 @@ void Game::GenerateOutput()
       thickness,
       static_cast<int>(paddleWidth)};
   SDL_RenderFillRect(mRenderers[2], &paddle);
-
-  if (mBall.GetWorldPos().x < mPaddle.screenPos.x + mPaddle.size.x - thickness / 2.0f &&
-      mBall.GetWorldPos().x >= mPaddle.screenPos.x + thickness / 2.0f &&
-      mBall.GetWorldPos().y < mPaddle.screenPos.y + mPaddle.size.y - thickness / 2.0f &&
-      mBall.GetWorldPos().y >= mPaddle.screenPos.y + thickness / 2.0f)
-  {
-    SDL_Rect ball{
-        static_cast<int>(mBall.GetWorldPos().x - mPaddle.screenPos.x - thickness / 2.0f),
-        static_cast<int>(mBall.GetWorldPos().y - mPaddle.screenPos.y - thickness / 2.0f),
-        thickness,
-        thickness};
-    SDL_RenderFillRect(mRenderers[2], &ball);
-  }
+  SDL_Rect ball2 = {
+      static_cast<int>(mBall.GetWorldPos().x - mPaddle.screenPos.x - thickness / 2.0f),
+      static_cast<int>(mBall.GetWorldPos().y - mPaddle.screenPos.y - thickness / 2.0f),
+      thickness,
+      thickness};
+  SDL_RenderFillRect(mRenderers[2], &ball2);
   SDL_RenderPresent(mRenderers[2]);
 }

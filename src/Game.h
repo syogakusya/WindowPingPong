@@ -44,4 +44,19 @@ private:
   WindowActor mPaddle;
   WindowActor mBall;
   Vector2 mBallVel;
+
+  enum class GameState
+  {
+    Start,
+    Playing,
+    GameOver,
+    GameClear
+  };
+
+  GameState mCurrentState;
+  int mScore;
+
+  void RenderStartScreen();
+  void RenderGameOverScreen();
+  void RenderScore();
 };
