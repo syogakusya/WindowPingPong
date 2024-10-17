@@ -1,11 +1,36 @@
 #pragma once
 #include <SDL.h>
 #include <vector>
+#include <cmath>
 
 struct Vector2
 {
   float x;
   float y;
+
+  Vector2 operator+(const Vector2 &other) const
+  {
+    return Vector2{x + other.x, y + other.y};
+  }
+
+  Vector2 &operator+=(const Vector2 &other)
+  {
+    x += other.x;
+    y += other.y;
+    return *this;
+  }
+
+  Vector2 operator-(const Vector2 &other) const
+  {
+    return Vector2{x - other.x, y - other.y};
+  }
+
+  Vector2 &operator-=(const Vector2 &other)
+  {
+    x -= other.x;
+    y -= other.y;
+    return *this;
+  }
 };
 
 struct WindowActor
@@ -14,9 +39,9 @@ struct WindowActor
   Vector2 size;
   Vector2 screenPos;
 
-  Vector2 GetWorldPos()
+  Vector2 GetLocalPos()
   {
-    return Vector2{pos.x + screenPos.x, pos.y + screenPos.y};
+    return Vector2{pos.x - screenPos.x, pos.y - screenPos.y};
   }
 };
 

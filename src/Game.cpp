@@ -2,12 +2,12 @@
 
 const int thickness = 15;
 const float paddleWidth = 100.0f;
-const float masterWindowHeight = 200.0f;
+const int masterWindowHeight = 200;
 const int windowWidth = 200;
 const int windowHeight = 200;
 const float paddleSpeed = 600.0f;
 
-Game::Game() : mIsRunning(true), mTicksCount(0), mPaddleDir(0.0f), mScore(0), mCurrentState(GameState::Start)
+Game::Game() : mIsRunning(true), mTicksCount(0), mPaddleDir(0.0f), mCurrentState(GameState::Start), mScore(0)
 {
 }
 
@@ -49,6 +49,8 @@ bool Game::Initialize()
   mBall.screenPos.y = y;
   mBall.size.x = windowWidth;
   mBall.size.y = windowHeight;
+  mBall.pos = {windowWidth / 2.0f + mBall.screenPos.x, windowHeight / 2.0f + mBall.screenPos.y};
+  mBallVel = {-200.0f, 235.0f};
 
   // パドル用ウィンドウの作成
   SDL_Window *paddleWindow = SDL_CreateWindow("Paddle", thickness, mScreen.size.y / 2, windowWidth, windowHeight, SDL_WINDOW_ALWAYS_ON_TOP);
@@ -63,6 +65,7 @@ bool Game::Initialize()
   mPaddle.screenPos.y = y;
   mPaddle.size.x = windowWidth;
   mPaddle.size.y = windowHeight;
+  mPaddle.pos = {windowWidth / 2.0f + mPaddle.screenPos.x, windowHeight / 2.0f + mPaddle.screenPos.y};
 
   // レンダラーの作成
   for (auto window : mWindows)
@@ -75,10 +78,6 @@ bool Game::Initialize()
     }
     mRenderers.push_back(renderer);
   }
-
-  mBall.pos = {windowWidth / 2.0f, windowHeight / 2.0f};
-  mPaddle.pos = {windowWidth / 2.0f, windowHeight / 2.0f};
-  mBallVel = {-200.0f, 235.0f};
 
   return true;
 }
@@ -150,57 +149,84 @@ void Game::UpdateGame()
     deltaTime = 0.05f;
   }
 
-  // ウィンドウの位置更新
+  // マウスでのウィンドウ位置操作に対応
   int ballX, ballY, paddleX, paddleY;
   SDL_GetWindowPosition(mWindows[1], &ballX, &ballY);
   SDL_GetWindowPosition(mWindows[2], &paddleX, &paddleY);
-
-  mBall.screenPos.x = static_cast<float>(ballX);
-  mBall.screenPos.y = static_cast<float>(ballY);
-  mPaddle.screenPos.x = paddleX;
-  mPaddle.screenPos.y = paddleY;
+  Vector2 ballLocalPos = mBall.GetLocalPos(), paddleLocalPos = mPaddle.GetLocalPos();
+  mBall.screenPos = {static_cast<float>(ballX), static_cast<float>(ballY)};
+  mPaddle.screenPos = {static_cast<float>(paddleX), static_cast<float>(paddleY)};
+  mBall.pos = mBall.screenPos + ballLocalPos;
+  mPaddle.pos = mPaddle.screenPos + paddleLocalPos;
 
   // パドルの移動
   if (mPaddleDir != 0.0f)
   {
     mPaddle.pos.y += mPaddleDir * paddleSpeed * deltaTime;
-    // パドルの位置制限を修正
-    if (mPaddle.pos.y < paddleWidth / 2.0f || mPaddle.pos.y > mPaddle.size.y - paddleWidth / 2.0f)
-    {
-      mPaddle.pos.y -= mPaddleDir * paddleSpeed * deltaTime;
-      mPaddle.screenPos.y += mPaddleDir * paddleSpeed * deltaTime;
-    }
-
-    mPaddleDir = 0.0f;
+    mPaddle.screenPos.y = mPaddle.pos.y - paddleLocalPos.y;
   }
+  mPaddleDir = 0.0f;
+
+  // パドルの位置制限
+  float paddleTop = mPaddle.pos.y - paddleWidth / 2.0f;
+  float paddleBottom = mPaddle.pos.y + paddleWidth / 2.0f;
+
+  if (paddleTop < masterWindowHeight)
+  {
+    mPaddle.pos.y = masterWindowHeight + paddleWidth / 2.0f;
+  }
+  else if (paddleBottom > mScreen.size.y)
+  {
+    mPaddle.pos.y = mScreen.size.y - paddleWidth / 2.0f;
+  }
+
+  // パドルウィンドウの位置制限
+  mPaddle.screenPos.y = mPaddle.pos.y - mPaddle.size.y / 2.0f;
+
+  // ウィンドウの上端がmasterWindowの下端より上にならないようにする
+  if (mPaddle.screenPos.y < masterWindowHeight)
+  {
+    mPaddle.screenPos.y = masterWindowHeight;
+  }
+  // ウィンドウの下端が画面の下端を超えないようにする
+  else if (mPaddle.screenPos.y + mPaddle.size.y > mScreen.size.y)
+  {
+    mPaddle.screenPos.y = mScreen.size.y - mPaddle.size.y;
+  }
+
+  // ウィンドウ位置を整数値に丸める（ピクセル単位で正確に配置するため）
+  mPaddle.screenPos.y = std::round(mPaddle.screenPos.y);
+
+  // ウィンドウ位置更新
+  SDL_SetWindowPosition(mWindows[2], static_cast<int>(mPaddle.screenPos.x), static_cast<int>(mPaddle.screenPos.y));
 
   mBall.pos.x += mBallVel.x * deltaTime;
   mBall.pos.y += mBallVel.y * deltaTime;
-  if (mBall.pos.x < thickness / 2.0f)
+  if (mBall.GetLocalPos().x < thickness / 2.0f)
   {
-    mBall.pos.x = thickness / 2.0f;
+    // mBall.pos.x = thickness / 2.0f;
     mBall.screenPos.x += mBallVel.x * deltaTime;
   }
-  if (mBall.pos.x > mBall.size.x - thickness / 2.0f)
+  if (mBall.GetLocalPos().x > mBall.size.x - thickness / 2.0f)
   {
-    mBall.pos.x = mBall.size.x - thickness / 2.0f;
+    // mBall.pos.x = mBall.size.x - thickness / 2.0f;
     mBall.screenPos.x += mBallVel.x * deltaTime;
   }
 
-  if (mBall.pos.y < thickness / 2.0f)
+  if (mBall.GetLocalPos().y < thickness / 2.0f)
   {
-    mBall.pos.y = thickness / 2.0f;
+    // mBall.pos.y = thickness / 2.0f;
     mBall.screenPos.y += mBallVel.y * deltaTime;
   }
-  if (mBall.pos.y > mBall.size.y - thickness / 2.0f)
+  if (mBall.GetLocalPos().y > mBall.size.y - thickness / 2.0f)
   {
-    mBall.pos.y = mBall.size.y - thickness / 2.0f;
+    // mBall.pos.y = mBall.size.y - thickness / 2.0f;
     mBall.screenPos.y += mBallVel.y * deltaTime;
   }
 
   // ボールとパドルの衝突判定
-  float diffX = mPaddle.GetWorldPos().x - mBall.GetWorldPos().x;
-  float diffY = mPaddle.GetWorldPos().y - mBall.GetWorldPos().y;
+  float diffX = mPaddle.pos.x - mBall.pos.x;
+  float diffY = mPaddle.pos.y - mBall.pos.y;
 
   if (std::abs(diffY) <= paddleWidth / 2.0f && std::abs(diffX) <= thickness / 2.0f)
   {
@@ -208,28 +234,30 @@ void Game::UpdateGame()
   }
 
   // ボールの壁反射
-  if ((mBall.GetWorldPos().y <= (thickness / 2.0f) + masterWindowHeight && mBallVel.y < 0.0f) || (mBall.GetWorldPos().y >= mScreen.size.y - thickness / 2.0f && mBallVel.y > 0.0f))
+  if ((mBall.pos.y - thickness / 2.0f <= masterWindowHeight && mBallVel.y < 0.0f) || (mBall.pos.y + thickness / 2.0f >= mScreen.size.y && mBallVel.y > 0.0f))
   {
     mBallVel.y *= -1.0f;
   }
-  if (mBall.GetWorldPos().x >= mScreen.size.x - thickness / 2.0f && mBallVel.x > 0.0f)
+  if (mBall.pos.x >= mScreen.size.x - thickness / 2.0f && mBallVel.x > 0.0f)
   {
     mBallVel.x *= -1.0f;
   }
-  if (mBall.GetWorldPos().x <= thickness / 2.0f && mBallVel.x < 0.0f)
+  if (mBall.pos.x <= thickness / 2.0f && mBallVel.x < 0.0f)
   {
     mBallVel.x *= -1.0f;
   }
 
+  // ウィンドウ位置更新
   SDL_SetWindowPosition(mWindows[1], mBall.screenPos.x, mBall.screenPos.y);
-  SDL_SetWindowPosition(mWindows[2], mPaddle.screenPos.x, mPaddle.screenPos.y);
 }
 
 void Game::GenerateOutput()
 {
-  SDL_SetRenderDrawColor(mRenderers[0], 0, 0, 0, 255);
+  SDL_SetRenderDrawColor(mRenderers[0], 255, 255, 255, 255);
   SDL_RenderClear(mRenderers[0]);
-
+  SDL_SetRenderDrawColor(mRenderers[0], 0, 0, 0, 255);
+  SDL_Rect background{thickness / 2, thickness / 2, static_cast<int>(mScreen.size.x - thickness), static_cast<int>(masterWindowHeight - thickness)};
+  SDL_RenderFillRect(mRenderers[0], &background);
   SDL_RenderPresent(mRenderers[0]);
 
   // ボールの描画
@@ -237,8 +265,8 @@ void Game::GenerateOutput()
   SDL_RenderClear(mRenderers[1]);
   SDL_SetRenderDrawColor(mRenderers[1], 255, 255, 255, 255);
   SDL_Rect ball{
-      static_cast<int>(mBall.pos.x - thickness / 2.0f),
-      static_cast<int>(mBall.pos.y - thickness / 2.0f),
+      static_cast<int>(mBall.GetLocalPos().x - thickness / 2.0f),
+      static_cast<int>(mBall.GetLocalPos().y - thickness / 2.0f),
       thickness,
       thickness};
   SDL_RenderFillRect(mRenderers[1], &ball);
@@ -249,14 +277,14 @@ void Game::GenerateOutput()
   SDL_RenderClear(mRenderers[2]);
   SDL_SetRenderDrawColor(mRenderers[2], 255, 255, 255, 255);
   SDL_Rect paddle{
-      static_cast<int>(mPaddle.pos.x - thickness / 2.0f),
-      static_cast<int>(mPaddle.pos.y - paddleWidth / 2.0f),
+      static_cast<int>(mPaddle.GetLocalPos().x - thickness / 2.0f),
+      static_cast<int>(mPaddle.GetLocalPos().y - paddleWidth / 2.0f),
       thickness,
       static_cast<int>(paddleWidth)};
   SDL_RenderFillRect(mRenderers[2], &paddle);
   SDL_Rect ball2 = {
-      static_cast<int>(mBall.GetWorldPos().x - mPaddle.screenPos.x - thickness / 2.0f),
-      static_cast<int>(mBall.GetWorldPos().y - mPaddle.screenPos.y - thickness / 2.0f),
+      static_cast<int>(mBall.pos.x - mPaddle.screenPos.x - thickness / 2.0f),
+      static_cast<int>(mBall.pos.y - mPaddle.screenPos.y - thickness / 2.0f),
       thickness,
       thickness};
   SDL_RenderFillRect(mRenderers[2], &ball2);
