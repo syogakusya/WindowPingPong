@@ -7,7 +7,7 @@ const int windowWidth = 200;
 const int windowHeight = 200;
 const float paddleSpeed = 600.0f;
 
-Game::Game() : mIsRunning(true), mTicksCount(0), mPaddleDir(0.0f), mCurrentState(GameState::Start), mScore(0)
+Game::Game() : mIsRunning(true), mTicksCount(0), mPaddleDir(0.0f), mCurrentState(GameState::Start), mScore(0), mBallCollision(false)
 {
 }
 
@@ -43,7 +43,7 @@ bool Game::Initialize()
   mMasterWindow.size = {static_cast<float>(masterWidth), static_cast<float>(masterHeight)};
 
   // ボール用ウィンドウの作成
-  SDL_Window *ballWindow = SDL_CreateWindow("Ball", mScreen.size.x / 2, mScreen.size.y / 2, windowWidth, windowHeight, SDL_WINDOW_ALWAYS_ON_TOP);
+  SDL_Window *ballWindow = SDL_CreateWindow("Ball", mScreen.size.x / 2, mScreen.size.y / 2, windowWidth, windowHeight, 0);
   if (!ballWindow)
   {
     SDL_Log("ボールウィンドウを作成できませんでした : %s", SDL_GetError());
@@ -298,11 +298,20 @@ void Game::UpdateGame()
 
   // ボールとパドルの衝突判定
   float diffX = mPaddle.pos.x - mBall.pos.x;
-  float diffY = mPaddle.pos.y - mBall.pos.y;
 
-  if (std::abs(diffY) <= paddleWidth / 2.0f && std::abs(diffX) <= thickness / 2.0f)
+  if (mBall.pos.y - thickness / 2.0f > mPaddle.pos.y + paddleWidth / 2.0f && mBall.pos.y + thickness / 2.0f < mPaddle.pos.y - paddleWidth / 2.0f &&
+      mPaddle.pos.x - thickness / 2.0f < mBall.pos.x + mBall.size.x / 2.0f && mPaddle.pos.x + thickness / 2.0f > mBall.pos.x - mBall.size.x / 2.0f)
   {
-    mBallVel.x *= -1.0f;
+    if (isBallCollision == false)
+    {
+      mBallVel.x *= -1.0f;
+      printf("衝突\n");
+    }
+    isBallCollision = true;
+  }
+  else
+  {
+    isBallCollision = false;
   }
 
   // ウィンドウ位置更新

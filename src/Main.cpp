@@ -1,6 +1,6 @@
 #include "Game.h"
 
-int main(int argc, char **argv)
+int main(int argv, char **argc)
 {
   Game game;
   bool success = game.Initialize();

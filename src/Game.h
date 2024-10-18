@@ -2,6 +2,7 @@
 #include <SDL.h>
 #include <vector>
 #include <cmath>
+#include <cstdio>
 
 struct Vector2
 {
@@ -65,6 +66,7 @@ private:
   const Uint8 *state;
   float mPaddleDir;
   bool prevSpaceKeyState;
+  bool isBallCollision;
 
   WindowActor mScreen;
   WindowActor mPaddle;
