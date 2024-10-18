@@ -2,7 +2,7 @@
 
 const int thickness = 15;
 const float paddleWidth = 100.0f;
-const int masterWindowHeight = 200;
+const int masterWindowHeight = 160;
 const int windowWidth = 200;
 const int windowHeight = 200;
 const float paddleSpeed = 600.0f;
@@ -25,6 +25,7 @@ bool Game::Initialize()
   {
     mScreen.size.x = displayMode.w;
     mScreen.size.y = displayMode.h;
+    printf("mScreen.size.x: %f, mScreen.size.y: %f\n", mScreen.size.x, mScreen.size.y);
   }
 
   SDL_Window *masterWindow = SDL_CreateWindow("WindowsPingPong", 0, 0, mScreen.size.x, masterWindowHeight, SDL_WINDOW_ALWAYS_ON_TOP | SDL_WINDOW_BORDERLESS);
@@ -34,6 +35,12 @@ bool Game::Initialize()
     return false;
   }
   mWindows.push_back(masterWindow);
+  int masterX, masterY;
+  SDL_GetWindowPosition(masterWindow, &masterX, &masterY);
+  mMasterWindow.screenPos = {static_cast<float>(masterX), static_cast<float>(masterY)};
+  int masterWidth, masterHeight;
+  SDL_GetWindowSize(masterWindow, &masterWidth, &masterHeight);
+  mMasterWindow.size = {static_cast<float>(masterWidth), static_cast<float>(masterHeight)};
 
   // ボール用ウィンドウの作成
   SDL_Window *ballWindow = SDL_CreateWindow("Ball", mScreen.size.x / 2, mScreen.size.y / 2, windowWidth, windowHeight, SDL_WINDOW_ALWAYS_ON_TOP);
@@ -43,13 +50,13 @@ bool Game::Initialize()
     return false;
   }
   mWindows.push_back(ballWindow);
-  int x, y;
-  SDL_GetWindowPosition(ballWindow, &x, &y);
-  mBall.screenPos.x = x;
-  mBall.screenPos.y = y;
-  mBall.size.x = windowWidth;
-  mBall.size.y = windowHeight;
-  mBall.pos = {windowWidth / 2.0f + mBall.screenPos.x, windowHeight / 2.0f + mBall.screenPos.y};
+  int ballX, ballY;
+  SDL_GetWindowPosition(ballWindow, &ballX, &ballY);
+  mBall.screenPos = {static_cast<float>(ballX), static_cast<float>(ballY)};
+  int ballWidth, ballHeight;
+  SDL_GetWindowSize(ballWindow, &ballWidth, &ballHeight);
+  mBall.size = {static_cast<float>(ballWidth), static_cast<float>(ballHeight)};
+  mBall.pos = {ballWidth / 2.0f + mBall.screenPos.x, ballHeight / 2.0f + mBall.screenPos.y};
   mBallVel = {-200.0f, 235.0f};
 
   // パドル用ウィンドウの作成
@@ -60,12 +67,13 @@ bool Game::Initialize()
     return false;
   }
   mWindows.push_back(paddleWindow);
-  SDL_GetWindowPosition(paddleWindow, &x, &y);
-  mPaddle.screenPos.x = x;
-  mPaddle.screenPos.y = y;
-  mPaddle.size.x = windowWidth;
-  mPaddle.size.y = windowHeight;
-  mPaddle.pos = {windowWidth / 2.0f + mPaddle.screenPos.x, windowHeight / 2.0f + mPaddle.screenPos.y};
+  int paddleX, paddleY;
+  SDL_GetWindowPosition(paddleWindow, &paddleX, &paddleY);
+  mPaddle.screenPos = {static_cast<float>(paddleX), static_cast<float>(paddleY)};
+  int paddleWidth, paddleHeight;
+  SDL_GetWindowSize(paddleWindow, &paddleWidth, &paddleHeight);
+  mPaddle.size = {static_cast<float>(paddleWidth), static_cast<float>(paddleHeight)};
+  mPaddle.pos = {paddleWidth / 2.0f + mPaddle.screenPos.x, paddleHeight / 2.0f + mPaddle.screenPos.y};
 
   // レンダラーの作成
   for (auto window : mWindows)
@@ -78,6 +86,8 @@ bool Game::Initialize()
     }
     mRenderers.push_back(renderer);
   }
+
+  mCurrentState = GameState::Playing;
 
   return true;
 }
@@ -100,7 +110,10 @@ void Game::RunLoop()
   while (mIsRunning)
   {
     ProcessInput();
-    UpdateGame();
+    if (mCurrentState == GameState::Playing && mCurrentState != GameState::Pause)
+    {
+      UpdateGame();
+    }
     GenerateOutput();
   }
 }
@@ -126,13 +139,42 @@ void Game::ProcessInput()
   }
 
   // パドルの移動
-  if (state[SDL_SCANCODE_UP] || state[SDL_SCANCODE_W])
+  if ((state[SDL_SCANCODE_UP] || state[SDL_SCANCODE_W]) && mCurrentState == GameState::Playing)
   {
     mPaddleDir -= 1.0f;
   }
-  if (state[SDL_SCANCODE_DOWN] || state[SDL_SCANCODE_S])
+  if ((state[SDL_SCANCODE_DOWN] || state[SDL_SCANCODE_S]) && mCurrentState == GameState::Playing)
   {
     mPaddleDir += 1.0f;
+  }
+
+  if (state[SDL_SCANCODE_SPACE] && !prevSpaceKeyState)
+  {
+    prevSpaceKeyState = true;
+    if (mCurrentState == GameState::Playing)
+    {
+      mCurrentState = GameState::Pause;
+    }
+    else if (mCurrentState == GameState::Pause)
+    {
+      mCurrentState = GameState::Playing;
+    }
+    printf("mCurrentState: %d\n", mCurrentState);
+  }
+
+  if (state[SDL_SCANCODE_Q])
+  {
+    // マスターウィンドウの情報を出力
+    int masterX, masterY, masterWidth, masterHeight;
+    SDL_GetWindowPosition(mWindows[0], &masterX, &masterY);
+    SDL_GetWindowSize(mWindows[0], &masterWidth, &masterHeight);
+    printf("マスターウィンドウ - 位置: (%d, %d), サイズ: %d x %d\n", masterX, masterY, masterWidth, masterHeight);
+
+    // パドルウィンドウの情報を出力
+    int paddleX, paddleY, paddleWidth, paddleHeight;
+    SDL_GetWindowPosition(mWindows[2], &paddleX, &paddleY);
+    SDL_GetWindowSize(mWindows[2], &paddleWidth, &paddleHeight);
+    printf("パドルウィンドウ - 位置: (%d, %d), サイズ: %d x %d\n", paddleX, paddleY, paddleWidth, paddleHeight);
   }
 }
 
@@ -171,9 +213,9 @@ void Game::UpdateGame()
   float paddleTop = mPaddle.pos.y - paddleWidth / 2.0f;
   float paddleBottom = mPaddle.pos.y + paddleWidth / 2.0f;
 
-  if (paddleTop < masterWindowHeight)
+  if (paddleTop < mMasterWindow.screenPos.y + mMasterWindow.size.y)
   {
-    mPaddle.pos.y = masterWindowHeight + paddleWidth / 2.0f;
+    mPaddle.pos.y = mMasterWindow.screenPos.y + mMasterWindow.size.y + paddleWidth / 2.0f;
   }
   else if (paddleBottom > mScreen.size.y)
   {
@@ -183,12 +225,12 @@ void Game::UpdateGame()
   // パドルウィンドウの位置制限
   mPaddle.screenPos.y = mPaddle.pos.y - mPaddle.size.y / 2.0f;
 
-  // ウィンドウの上端がmasterWindowの下端より上にならないようにする
-  if (mPaddle.screenPos.y < masterWindowHeight)
+  // 上
+  if (mPaddle.screenPos.y < mMasterWindow.screenPos.y + mMasterWindow.size.y)
   {
-    mPaddle.screenPos.y = masterWindowHeight;
+    mPaddle.screenPos.y = mMasterWindow.screenPos.y + mMasterWindow.size.y;
   }
-  // ウィンドウの下端が画面の下端を超えないようにする
+  // 下
   else if (mPaddle.screenPos.y + mPaddle.size.y > mScreen.size.y)
   {
     mPaddle.screenPos.y = mScreen.size.y - mPaddle.size.y;
@@ -202,26 +244,56 @@ void Game::UpdateGame()
 
   mBall.pos.x += mBallVel.x * deltaTime;
   mBall.pos.y += mBallVel.y * deltaTime;
-  if (mBall.GetLocalPos().x < thickness / 2.0f)
+  mBall.screenPos.x = mBall.pos.x - mBall.size.x / 2.0f;
+  mBall.screenPos.y = mBall.pos.y - mBall.size.y / 2.0f;
+
+  // ボールの位置制限
+  if (mBall.pos.x > mScreen.size.x - thickness / 2.0f && mBallVel.x > 0.0f) // 右壁
   {
-    // mBall.pos.x = thickness / 2.0f;
-    mBall.screenPos.x += mBallVel.x * deltaTime;
+    mBall.pos.x = mScreen.size.x - thickness / 2.0f;
+    mBallVel.x *= -1.0f;
   }
-  if (mBall.GetLocalPos().x > mBall.size.x - thickness / 2.0f)
+  else if (mBall.pos.x < thickness / 2.0f && mBallVel.x < 0.0f) // 左壁
   {
-    // mBall.pos.x = mBall.size.x - thickness / 2.0f;
-    mBall.screenPos.x += mBallVel.x * deltaTime;
+    mBall.pos.x = thickness / 2.0f;
+    mBallVel.x *= -1.0f;
   }
 
-  if (mBall.GetLocalPos().y < thickness / 2.0f)
+  if (mBall.pos.y > mScreen.size.y - thickness / 2.0f && mBallVel.y > 0.0f) // 下壁
   {
-    // mBall.pos.y = thickness / 2.0f;
-    mBall.screenPos.y += mBallVel.y * deltaTime;
+    mBall.pos.y = mScreen.size.y - thickness / 2.0f;
+    mBallVel.y *= -1.0f;
   }
-  if (mBall.GetLocalPos().y > mBall.size.y - thickness / 2.0f)
+  else if (mBall.pos.y < thickness / 2.0f + mMasterWindow.screenPos.y + mMasterWindow.size.y && mBallVel.y < 0.0f) // 上壁
   {
-    // mBall.pos.y = mBall.size.y - thickness / 2.0f;
-    mBall.screenPos.y += mBallVel.y * deltaTime;
+    mBall.pos.y = thickness / 2.0f + mMasterWindow.screenPos.y + mMasterWindow.size.y;
+    mBallVel.y *= -1.0f;
+  }
+
+  // ボールウィンドウの制限
+  mBall.screenPos.x = mBall.pos.x - mBall.size.x / 2.0f;
+  mBall.screenPos.y = mBall.pos.y - mBall.size.y / 2.0f;
+
+  // 左
+  if (mBall.screenPos.x < 0.0f)
+  {
+    mBall.screenPos.x = 0.0f;
+  }
+  // 右
+  else if (mBall.screenPos.x + mBall.size.x > mScreen.size.x)
+  {
+    mBall.screenPos.x = mScreen.size.x - mBall.size.x;
+  }
+
+  // 上
+  if (mBall.screenPos.y < mMasterWindow.screenPos.y + mMasterWindow.size.y)
+  {
+    mBall.screenPos.y = mMasterWindow.screenPos.y + mMasterWindow.size.y;
+  }
+  // 下
+  else if (mBall.screenPos.y + mBall.size.y > mScreen.size.y)
+  {
+    mBall.screenPos.y = mScreen.size.y - mBall.size.y;
   }
 
   // ボールとパドルの衝突判定
@@ -229,20 +301,6 @@ void Game::UpdateGame()
   float diffY = mPaddle.pos.y - mBall.pos.y;
 
   if (std::abs(diffY) <= paddleWidth / 2.0f && std::abs(diffX) <= thickness / 2.0f)
-  {
-    mBallVel.x *= -1.0f;
-  }
-
-  // ボールの壁反射
-  if ((mBall.pos.y - thickness / 2.0f <= masterWindowHeight && mBallVel.y < 0.0f) || (mBall.pos.y + thickness / 2.0f >= mScreen.size.y && mBallVel.y > 0.0f))
-  {
-    mBallVel.y *= -1.0f;
-  }
-  if (mBall.pos.x >= mScreen.size.x - thickness / 2.0f && mBallVel.x > 0.0f)
-  {
-    mBallVel.x *= -1.0f;
-  }
-  if (mBall.pos.x <= thickness / 2.0f && mBallVel.x < 0.0f)
   {
     mBallVel.x *= -1.0f;
   }

@@ -64,16 +64,19 @@ private:
   Uint32 mTicksCount;
   const Uint8 *state;
   float mPaddleDir;
+  bool prevSpaceKeyState;
 
   WindowActor mScreen;
   WindowActor mPaddle;
   WindowActor mBall;
+  WindowActor mMasterWindow;
   Vector2 mBallVel;
 
   enum class GameState
   {
     Start,
     Playing,
+    Pause,
     GameOver,
     GameClear
   };
