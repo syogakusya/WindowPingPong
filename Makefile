@@ -9,12 +9,12 @@ ifeq ($(OS),Windows_NT)
 		SDL_CFLAGS = -IC:\SDL2\include\SDL2 -Dmain=SDL_main
 		SDL_LIBS = -LC:\SDL2\lib -lmingw32 -lSDL2main -lSDL2
 else
-		BUILDDIR = build/
+		BUILDDIR = build
 		MKDIR = mkdir -p
 		CXX = g++
 		RM = rm -rf
 		EXE = .exe
-		SRCDIR = src/
+		SRCDIR = src
 		SDL_CFLAGS = $$(sdl2-config --cflags)
 		SDL_LIBS = $$(sdl2-config --libs)
 endif
@@ -27,9 +27,6 @@ LDFLAGS = $(SDL_LIBS)
 # ソースファイルとオブジェクトファイル
 SRCS = $(wildcard $(SRCDIR)/*.cpp)
 OBJS = $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(SRCS))
-
-a:
-	cmd.exe /c  echo $(OBJS)
 
 # プロジェクト名（ディレクトリ名から取得）
 PROJECT_NAME := $(notdir $(CURDIR))

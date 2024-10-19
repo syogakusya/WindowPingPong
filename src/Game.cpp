@@ -7,7 +7,7 @@ const int windowWidth = 200;
 const int windowHeight = 200;
 const float paddleSpeed = 600.0f;
 
-Game::Game() : mIsRunning(true), mTicksCount(0), mPaddleDir(0.0f), mCurrentState(GameState::Start), mScore(0), mBallCollision(false)
+Game::Game() : mIsRunning(true), mTicksCount(0), mPaddleDir(0.0f), mCurrentState(GameState::Start), mScore(0), isBallCollision(false)
 {
 }
 
