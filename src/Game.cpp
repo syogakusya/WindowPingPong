@@ -6,8 +6,8 @@ const int masterWindowHeight = 160;
 const int windowWidth = 200;
 const int windowHeight = 200;
 const float paddleSpeed = 600.0f;
-
-Game::Game() : mIsRunning(true), mTicksCount(0), mPaddleDir(0.0f), mCurrentState(GameState::Start), mScore(0), isBallCollision(false)
+const float ballSpeed = 300.0f;
+Game::Game() : mIsRunning(true), mTicksCount(0), mPaddleDir(0.0f), isBallCollision(false), mCurrentState(GameState::Start), mScore(0)
 {
 }
 
@@ -43,7 +43,7 @@ bool Game::Initialize()
   mMasterWindow.size = {static_cast<float>(masterWidth), static_cast<float>(masterHeight)};
 
   // ボール用ウィンドウの作成
-  SDL_Window *ballWindow = SDL_CreateWindow("Ball", mScreen.size.x / 2, mScreen.size.y / 2, windowWidth, windowHeight, 0);
+  SDL_Window *ballWindow = SDL_CreateWindow("Ball", mScreen.size.x / 2, mScreen.size.y / 2, windowWidth, windowHeight, SDL_WINDOW_ALWAYS_ON_TOP);
   if (!ballWindow)
   {
     SDL_Log("ボールウィンドウを作成できませんでした : %s", SDL_GetError());
@@ -148,18 +148,27 @@ void Game::ProcessInput()
     mPaddleDir += 1.0f;
   }
 
-  if (state[SDL_SCANCODE_SPACE] && !prevSpaceKeyState)
+  if (state[SDL_SCANCODE_SPACE])
   {
+    if (prevSpaceKeyState == false)
+    {
+      if (mCurrentState == GameState::Playing)
+      {
+        mCurrentState = GameState::Pause;
+      }
+      else if (mCurrentState == GameState::Pause)
+      {
+        mCurrentState = GameState::Playing;
+      }
+    }
     prevSpaceKeyState = true;
-    if (mCurrentState == GameState::Playing)
+  }
+  else
+  {
+    if (prevSpaceKeyState == true)
     {
-      mCurrentState = GameState::Pause;
+      prevSpaceKeyState = false;
     }
-    else if (mCurrentState == GameState::Pause)
-    {
-      mCurrentState = GameState::Playing;
-    }
-    printf("mCurrentState: %d\n", mCurrentState);
   }
 
   if (state[SDL_SCANCODE_Q])
@@ -239,9 +248,6 @@ void Game::UpdateGame()
   // ウィンドウ位置を整数値に丸める（ピクセル単位で正確に配置するため）
   mPaddle.screenPos.y = std::round(mPaddle.screenPos.y);
 
-  // ウィンドウ位置更新
-  SDL_SetWindowPosition(mWindows[2], static_cast<int>(mPaddle.screenPos.x), static_cast<int>(mPaddle.screenPos.y));
-
   mBall.pos.x += mBallVel.x * deltaTime;
   mBall.pos.y += mBallVel.y * deltaTime;
   mBall.screenPos.x = mBall.pos.x - mBall.size.x / 2.0f;
@@ -297,11 +303,10 @@ void Game::UpdateGame()
   }
 
   // ボールとパドルの衝突判定
-  float diffX = mPaddle.pos.x - mBall.pos.x;
-
-  if (mBall.pos.y - thickness / 2.0f > mPaddle.pos.y + paddleWidth / 2.0f && mBall.pos.y + thickness / 2.0f < mPaddle.pos.y - paddleWidth / 2.0f &&
-      mPaddle.pos.x - thickness / 2.0f < mBall.pos.x + mBall.size.x / 2.0f && mPaddle.pos.x + thickness / 2.0f > mBall.pos.x - mBall.size.x / 2.0f)
+  if (mBall.pos.y - thickness / 2.0f < mPaddle.pos.y + paddleWidth / 2.0f && mBall.pos.y + thickness / 2.0f > mPaddle.pos.y - paddleWidth / 2.0f &&
+      mPaddle.pos.x - thickness / 2.0f < mBall.pos.x + thickness / 2.0f && mPaddle.pos.x + thickness / 2.0f > mBall.pos.x - thickness / 2.0f)
   {
+    printf("検知\n");
     if (isBallCollision == false)
     {
       mBallVel.x *= -1.0f;
@@ -313,13 +318,13 @@ void Game::UpdateGame()
   {
     isBallCollision = false;
   }
-
-  // ウィンドウ位置更新
-  SDL_SetWindowPosition(mWindows[1], mBall.screenPos.x, mBall.screenPos.y);
 }
 
 void Game::GenerateOutput()
 {
+  // ウィンドウ位置更新
+  SDL_SetWindowPosition(mWindows[1], mBall.screenPos.x, mBall.screenPos.y);
+  SDL_SetWindowPosition(mWindows[2], static_cast<int>(mPaddle.screenPos.x), static_cast<int>(mPaddle.screenPos.y));
   SDL_SetRenderDrawColor(mRenderers[0], 255, 255, 255, 255);
   SDL_RenderClear(mRenderers[0]);
   SDL_SetRenderDrawColor(mRenderers[0], 0, 0, 0, 255);
