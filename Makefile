@@ -19,7 +19,7 @@ else
 		SDL_LIBS = $$(sdl2-config --libs)
 endif
 # コンパイルオプション
-CXXFLAGS = -std=c++11 -Wall -Wextra $(SDL_CFLAGS)
+CXXFLAGS = -std=c++17 -Wall -Wextra $(SDL_CFLAGS)
 
 # リンクオプション
 LDFLAGS = $(SDL_LIBS)
