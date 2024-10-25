@@ -7,7 +7,7 @@ const int BALL_SIZE = 16;
 const int PADDLE_WIDTH = 16;
 const int PADDLE_HEIGHT = 100;
 const float PADDLE_SPEED = 300.0f;
-const int UI_MARGIN = 8;
+const int UI_MARGIN = 6;
 
 Game::Game()
     : mIsRunning(true),
