@@ -6,77 +6,31 @@
 class GameObject
 {
 public:
-  class Proxy
-  {
-  public:
-    Proxy(Vector2 &ref, std::function<void()> updateFunc)
-        : ref(ref), updateFunc(updateFunc), x(ref.x), y(ref.y) {}
-
-    float &x;
-    float &y;
-
-    operator Vector2() const { return ref; }
-
-    Proxy &operator=(const Vector2 &other)
-    {
-      ref = other;
-      updateFunc();
-      return *this;
-    }
-
-    Proxy &operator+=(const Vector2 &other)
-    {
-      ref += other;
-      updateFunc();
-      return *this;
-    }
-
-    Proxy &operator-=(const Vector2 &other)
-    {
-      ref -= other;
-      updateFunc();
-      return *this;
-    }
-
-    Proxy &operator*=(float scalar)
-    {
-      ref *= scalar;
-      updateFunc();
-      return *this;
-    }
-
-    Proxy &operator/=(float scalar)
-    {
-      ref /= scalar;
-      updateFunc();
-      return *this;
-    }
-
-  private:
-    Vector2 &ref;
-    std::function<void()> updateFunc;
-  };
-
-  GameObject(const char *windowName, int x, int y, int width, int height, Uint32 windowFlags);
+  static Vector2 mScreenSize;
+  GameObject(const char *windowName, Vector2 pos, Vector2 size, Uint32 windowFlags);
   virtual ~GameObject();
 
   virtual void Update(float deltaTime) = 0;
   virtual void Draw(SDL_Renderer *renderer) = 0;
+  virtual void RenderPresent(SDL_Renderer *renderer) = 0;
 
   void UpdateWindowPosition();
 
   SDL_Window *GetWindow() const { return mWindow; }
   SDL_Renderer *GetRenderer() const { return mRenderer; }
 
-  Proxy worldPos;
-  Proxy localPos;
-  Proxy velocity;
+  Vector2 GetWorldPos() const { return mWorldPos; }
+  Vector2 GetLocalPos() const { return mLocalPos; }
+  Vector2 GetVelocity() const { return mVelocity; }
+  Vector2 GetWindowSize() const { return mWindowSize; }
+  Vector2 GetWindowPos() const { return mWindowPos; }
 
 protected:
   Vector2 mWorldPos;
   Vector2 mLocalPos;
   Vector2 mVelocity;
-  Vector2 mSize;
+  Vector2 mWindowSize;
+  Vector2 mWindowPos;
   SDL_Window *mWindow;
   SDL_Renderer *mRenderer;
 

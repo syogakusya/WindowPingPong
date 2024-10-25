@@ -2,17 +2,20 @@
 #include "MasterWindow.h"
 
 const int MASTER_WINDOW_HEIGHT = 160;
-const int BALL_SIZE = 200;
-const int PADDLE_WIDTH = 15;
-const int PADDLE_HEIGHT = 100;
+const int WINDOW_SIZE = 200;
+const int BALL_SIZE = 16;
+const int PADDLE_WIDTH = 16;
+const int PADDLE_HEIGHT = 128;
 const float PADDLE_SPEED = 300.0f;
+const int UI_MARGIN = 10;
 
 Game::Game()
     : mIsRunning(true),
       mTicksCount(0),
       mPrevSpaceKeyState(false),
       mCurrentState(GameState::Start),
-      mScore(0)
+      mScore(0),
+      isBallCollision(false)
 {
 }
 
@@ -24,23 +27,42 @@ bool Game::Initialize()
     return false;
   }
 
+  mScreen = std::unique_ptr<Vector2>(new Vector2());
   SDL_DisplayMode displayMode;
   if (SDL_GetCurrentDisplayMode(0, &displayMode) == 0)
   {
     mScreen->x = displayMode.w;
     mScreen->y = displayMode.h;
+
+    GameObject::mScreenSize = *mScreen;
+
+    printf("mScreen->x: %f, mScreen->y: %f\n", mScreen->x, mScreen->y);
+  }
+  else
+  {
+    SDL_Log("ディスプレイモードの取得に失敗しました: %s", SDL_GetError());
+    return false;
   }
 
   mMasterWindow =
       std::unique_ptr<MasterWindow>(
           new MasterWindow(
-              "WindowsPingPong", 0, 0,
-              mScreen->x,
-              MASTER_WINDOW_HEIGHT, SDL_WINDOW_ALWAYS_ON_TOP | SDL_WINDOW_BORDERLESS));
+              "WindowsPingPong",
+              Vector2(mScreen->x / 2, 0),
+              Vector2(mScreen->x, MASTER_WINDOW_HEIGHT),
+              UI_MARGIN,
+              SDL_WINDOW_ALWAYS_ON_TOP | SDL_WINDOW_BORDERLESS));
   mBall = std::unique_ptr<Ball>(
-      new Ball(mScreen->x / 2, mScreen->y / 2, BALL_SIZE));
+      new Ball(
+          Vector2(mScreen->x / 2, mScreen->y / 2),
+          Vector2(WINDOW_SIZE, WINDOW_SIZE),
+          BALL_SIZE,
+          mMasterWindow->GetOffSetY()));
   mPaddle = std::unique_ptr<Paddle>(
-      new Paddle(PADDLE_WIDTH, mScreen->y / 2, PADDLE_WIDTH, PADDLE_HEIGHT));
+      new Paddle(
+          Vector2(mScreen->x / 4, mScreen->y / 2),
+          Vector2(WINDOW_SIZE, WINDOW_SIZE),
+          PADDLE_WIDTH, PADDLE_HEIGHT, mMasterWindow->GetOffSetY()));
 
   mCurrentState = GameState::Playing;
   mIsRunning = true;
@@ -135,32 +157,35 @@ void Game::GenerateOutput()
   mMasterWindow->Draw(mMasterWindow->GetRenderer());
   mBall->Draw(mBall->GetRenderer());
   mPaddle->Draw(mPaddle->GetRenderer());
+  mPaddle->DrawBall(mPaddle->GetRenderer(), mBall.get());
+
+  mBall->RenderPresent(mBall->GetRenderer());
+  mPaddle->RenderPresent(mPaddle->GetRenderer());
+  mMasterWindow->RenderPresent(mMasterWindow->GetRenderer());
 }
 
 void Game::CheckCollisions()
 {
   // ボールとパドルの衝突判定
-  Vector2 ballPos = mBall->worldPos;
-  Vector2 paddlePos = mPaddle->worldPos;
-  // Vector2 ballVel = mBall->velocity; // 未使用なので削除または使用
+  Vector2 ballPos = mBall->GetWorldPos();
+  Vector2 paddlePos = mPaddle->GetWorldPos();
 
   if (ballPos.y - BALL_SIZE / 2.0f < paddlePos.y + PADDLE_HEIGHT / 2.0f &&
       ballPos.y + BALL_SIZE / 2.0f > paddlePos.y - PADDLE_HEIGHT / 2.0f &&
       paddlePos.x - PADDLE_WIDTH / 2.0f < ballPos.x + BALL_SIZE / 2.0f &&
       paddlePos.x + PADDLE_WIDTH / 2.0f > ballPos.x - BALL_SIZE / 2.0f)
   {
-    mBall->ReverseVelocityX();
-    mScore++;
+    printf("検知\n");
+    if (isBallCollision == false)
+    {
+      mBall->ReverseVelocityX();
+      printf("衝突\n");
+    }
+    isBallCollision = true;
   }
-
-  // ボールと画面端の衝突判定
-  if (ballPos.x <= 0 || ballPos.x >= SCREEN_WIDTH)
+  else
   {
-    mBall->ReverseVelocityX();
-  }
-  if (ballPos.y <= MASTER_WINDOW_HEIGHT || ballPos.y >= SCREEN_HEIGHT)
-  {
-    mBall->ReverseVelocityY();
+    isBallCollision = false;
   }
 }
 

@@ -1,24 +1,36 @@
 #include "GameObject.h"
 
-GameObject::GameObject(const char *windowName, int x, int y, int width, int height, Uint32 windowFlags)
-    : mWorldPos{static_cast<float>(x), static_cast<float>(y)},
-      mLocalPos{0.0f, 0.0f},
+Vector2 GameObject::mScreenSize = Vector2(0, 0);
+
+GameObject::GameObject(
+    const char *windowName,
+    Vector2 pos, Vector2 size, Uint32 windowFlags)
+    : mWorldPos{static_cast<float>(pos.x), static_cast<float>(pos.y)},
+      mLocalPos{static_cast<float>(size.x / 2),
+                static_cast<float>(size.y / 2)},
       mVelocity{0.0f, 0.0f},
-      mSize{static_cast<float>(width), static_cast<float>(height)},
-      worldPos(mWorldPos, [this]()
-               { UpdateWindowPosition(); }),
-      localPos(mLocalPos, [this]()
-               { UpdateLocalPos(); }),
-      velocity(mVelocity, []() {})
+      mWindowSize{static_cast<float>(size.x),
+                  static_cast<float>(size.y)},
+      mWindowPos{
+          static_cast<float>(pos.x - size.x / 2),
+          static_cast<float>(pos.y - size.y / 2)}
 {
-  mWindow = SDL_CreateWindow(windowName, x, y, width, height, windowFlags);
+  mWindow = SDL_CreateWindow(
+      windowName,
+      mWindowPos.x,
+      mWindowPos.y,
+      mWindowSize.x,
+      mWindowSize.y,
+      windowFlags);
   if (!mWindow)
   {
     SDL_Log("ウィンドウの作成に失敗しました: %s", SDL_GetError());
     return;
   }
 
-  mRenderer = SDL_CreateRenderer(mWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+  mRenderer = SDL_CreateRenderer(
+      mWindow, -1,
+      SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
   if (!mRenderer)
   {
     SDL_Log("レンダラーの作成に失敗しました: %s", SDL_GetError());
@@ -32,13 +44,16 @@ GameObject::~GameObject()
   SDL_DestroyWindow(mWindow);
 }
 
+// ローカル座標を再計算し、ウィンドウの位置を再設定する
 void GameObject::UpdateWindowPosition()
 {
-  SDL_SetWindowPosition(mWindow, static_cast<int>(mWorldPos.x), static_cast<int>(mWorldPos.y));
   UpdateLocalPos();
+  SDL_SetWindowPosition(mWindow,
+                        static_cast<int>(mWindowPos.x),
+                        static_cast<int>(mWindowPos.y));
 }
 
 void GameObject::UpdateLocalPos()
 {
-  mLocalPos = mWorldPos - Vector2{static_cast<float>(mSize.x / 2), static_cast<float>(mSize.y / 2)};
+  mLocalPos = mWorldPos - mWindowPos;
 }

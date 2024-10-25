@@ -1,34 +1,110 @@
 #include "Paddle.h"
 
-const float PADDLE_SPEED = 300.0f;
+const float PADDLE_SPEED = 600.0f;
 
-Paddle::Paddle(int x, int y, int width, int height)
-    : GameObject("Paddle", x, y, width, height, SDL_WINDOW_ALWAYS_ON_TOP),
+Paddle::Paddle(
+    Vector2 pos,
+    Vector2 size,
+    int paddleWidth, int paddleHeight, int offSetY)
+    : GameObject("Paddle", pos, size, SDL_WINDOW_ALWAYS_ON_TOP),
       mDirection(0.0f),
-      mSpeed(PADDLE_SPEED)
+      mSpeed(PADDLE_SPEED),
+      mPaddleWidth(paddleWidth),
+      mPaddleHeight(paddleHeight),
+      mOffSetY(offSetY)
 {
 }
 
 void Paddle::Update(float deltaTime)
 {
+    // マウスによるウィンドウ操作に対応
+    int paddleX, paddleY;
+
+    SDL_GetWindowPosition(mWindow, &paddleX, &paddleY);
+    mWindowPos = Vector2(static_cast<float>(paddleX), static_cast<float>(paddleY));
+    mWorldPos = mWindowPos + mLocalPos;
+
     mWorldPos.y += mDirection * mSpeed * deltaTime;
+    mWindowPos.y = mWorldPos.y - mWindowSize.y / 2.0f;
+    ClampPaddlePosition();
+    ClampWindowPosition();
     UpdateWindowPosition();
-    mDirection = 0.0f;  // Reset direction after update
+    mDirection = 0.0f;
 }
 
-void Paddle::Draw(SDL_Renderer* renderer)
+void Paddle::Draw(SDL_Renderer *renderer)
 {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_Rect paddle{
-        static_cast<int>(mLocalPos.x - mSize.x / 2.0f),
-        static_cast<int>(mLocalPos.y - mSize.y / 2.0f),
-        static_cast<int>(mSize.x),
-        static_cast<int>(mSize.y)
-    };
+        static_cast<int>(mLocalPos.x - mPaddleWidth / 2.0f),
+        static_cast<int>(mLocalPos.y - mPaddleHeight / 2.0f),
+        static_cast<int>(mPaddleWidth),
+        static_cast<int>(mPaddleHeight)};
     SDL_RenderFillRect(renderer, &paddle);
+}
+
+void Paddle::DrawBall(SDL_Renderer *renderer, Ball *ball)
+{
+    SDL_Rect ball_ = {
+        static_cast<int>(ball->GetWorldPos().x - mWindowPos.x - ball->GetBallSize() / 2.0f),
+        static_cast<int>(ball->GetWorldPos().y - mWindowPos.y - ball->GetBallSize() / 2.0f),
+        static_cast<int>(ball->GetBallSize()),
+        static_cast<int>(ball->GetBallSize())};
+    SDL_RenderFillRect(renderer, &ball_);
+}
+
+void Paddle::RenderPresent(SDL_Renderer *renderer)
+{
+    SDL_RenderPresent(renderer);
 }
 
 void Paddle::SetDirection(float direction)
 {
     mDirection = direction;
+}
+
+void Paddle::ClampWindowPosition()
+{
+    // 左
+    if (mWindowPos.x < 0.0f)
+    {
+        mWindowPos.x = 0.0f;
+    }
+
+    // 右
+    else if (mWindowPos.x + mWindowSize.x > GameObject::mScreenSize.x)
+    {
+        mWindowPos.x = GameObject::mScreenSize.x - mWindowSize.x;
+    }
+
+    // 上
+    if (mWindowPos.y < mOffSetY)
+    {
+        mWindowPos.y = mOffSetY;
+    }
+
+    // 下
+    else if (mWindowPos.y + mWindowSize.y > GameObject::mScreenSize.y)
+    {
+        mWindowPos.y = GameObject::mScreenSize.y - mWindowSize.y;
+    }
+}
+
+void Paddle::ClampPaddlePosition()
+{
+    float paddleTop = mWorldPos.y - mPaddleHeight / 2.0f;
+    float paddleBottom = mWorldPos.y + mPaddleHeight / 2.0f;
+
+    // 上
+    if (paddleTop < mOffSetY)
+    {
+        mWorldPos.y = mOffSetY + mPaddleHeight / 2.0f;
+    }
+    // 下
+    else if (paddleBottom > GameObject::mScreenSize.y)
+    {
+        mWorldPos.y = GameObject::mScreenSize.y - mPaddleHeight / 2.0f;
+    }
 }

@@ -28,6 +28,7 @@ private:
   Uint32 mTicksCount;
   const Uint8 *mKeyboardState;
   bool mPrevSpaceKeyState;
+  bool isBallCollision;
 
   enum class GameState
   {
