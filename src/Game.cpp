@@ -5,9 +5,9 @@ const int MASTER_WINDOW_HEIGHT = 160;
 const int WINDOW_SIZE = 200;
 const int BALL_SIZE = 16;
 const int PADDLE_WIDTH = 16;
-const int PADDLE_HEIGHT = 128;
+const int PADDLE_HEIGHT = 100;
 const float PADDLE_SPEED = 300.0f;
-const int UI_MARGIN = 10;
+const int UI_MARGIN = 8;
 
 Game::Game()
     : mIsRunning(true),
@@ -175,11 +175,9 @@ void Game::CheckCollisions()
       paddlePos.x - PADDLE_WIDTH / 2.0f < ballPos.x + BALL_SIZE / 2.0f &&
       paddlePos.x + PADDLE_WIDTH / 2.0f > ballPos.x - BALL_SIZE / 2.0f)
   {
-    printf("検知\n");
     if (isBallCollision == false)
     {
       mBall->ReverseVelocityX();
-      printf("衝突\n");
     }
     isBallCollision = true;
   }
