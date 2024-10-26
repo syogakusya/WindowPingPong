@@ -6,8 +6,8 @@ ifeq ($(OS),Windows_NT)
 		RM = cmd /c rd /Q /S
 		EXE = .exe
 		SRCDIR = src
-		SDL_CFLAGS = -IC:\SDL2\include\SDL2 -Dmain=SDL_main
-		SDL_LIBS = -LC:\SDL2\lib -lmingw32 -lSDL2main -lSDL2
+		SDL_CFLAGS = -IC:\SDL2\include\SDL2 -IC:\SDL2_ttf\include -Dmain=SDL_main
+		SDL_LIBS = -LC:\SDL2\lib -LC:\SDL2_ttf\lib -lmingw32 -lSDL2main -lSDL2 -lSDL2_ttf
 else
 		BUILDDIR = build
 		MKDIR = mkdir -p
@@ -15,8 +15,8 @@ else
 		RM = rm -rf
 		EXE = .exe
 		SRCDIR = src
-		SDL_CFLAGS = $$(sdl2-config --cflags)
-		SDL_LIBS = $$(sdl2-config --libs)
+		SDL_CFLAGS = $$(sdl2-config --cflags) $$(pkg-config --cflags SDL2_ttf)
+		SDL_LIBS = $$(sdl2-config --libs) $$(pkg-config --libs SDL2_ttf)
 endif
 # コンパイルオプション
 CXXFLAGS = -std=c++17 -Wall -Wextra $(SDL_CFLAGS)

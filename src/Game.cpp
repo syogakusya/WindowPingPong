@@ -1,5 +1,4 @@
 #include "Game.h"
-#include "MasterWindow.h"
 
 const int MASTER_WINDOW_HEIGHT = 160;
 const int WINDOW_SIZE = 200;
@@ -24,6 +23,12 @@ bool Game::Initialize()
   if (SDL_Init(SDL_INIT_VIDEO) != 0)
   {
     SDL_Log("SDLの初期化に失敗しました: %s", SDL_GetError());
+    return false;
+  }
+
+  if (TTF_Init() == -1)
+  {
+    SDL_Log("SDL_ttfの初期化に失敗しました: %s", TTF_GetError());
     return false;
   }
 
@@ -63,6 +68,9 @@ bool Game::Initialize()
           Vector2(mScreen->x / 4, mScreen->y / 2),
           Vector2(WINDOW_SIZE, WINDOW_SIZE),
           PADDLE_WIDTH, PADDLE_HEIGHT, mMasterWindow->GetOffSetY()));
+
+  mPixelifySansRenderer = std::unique_ptr<TextRenderer>(
+      new TextRenderer("../font/PixelifySans-VariableFont_wght.ttf", 24));
 
   mCurrentState = GameState::Playing;
   mIsRunning = true;
@@ -159,6 +167,14 @@ void Game::GenerateOutput()
   mPaddle->Draw(mPaddle->GetRenderer());
   mPaddle->DrawBall(mPaddle->GetRenderer(), mBall.get());
 
+  SDL_Color textColor = {255, 255, 255, 255};
+  mPixelifySansRenderer->RenderText(
+      "Score: " + std::to_string(mScore),
+      10,
+      10,
+      textColor,
+      mMasterWindow->GetRenderer());
+
   mBall->RenderPresent(mBall->GetRenderer());
   mPaddle->RenderPresent(mPaddle->GetRenderer());
   mMasterWindow->RenderPresent(mMasterWindow->GetRenderer());
@@ -178,6 +194,7 @@ void Game::CheckCollisions()
     if (isBallCollision == false)
     {
       mBall->ReverseVelocityX();
+      mScore++;
     }
     isBallCollision = true;
   }
@@ -189,5 +206,10 @@ void Game::CheckCollisions()
 
 void Game::Shutdown()
 {
+  mBall.reset();
+  mPaddle.reset();
+  mMasterWindow.reset();
+
+  TTF_Quit();
   SDL_Quit();
 }

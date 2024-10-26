@@ -57,3 +57,18 @@ void GameObject::UpdateLocalPos()
 {
   mLocalPos = mWorldPos - mWindowPos;
 }
+
+void GameObject::ShowWindow()
+{
+  SDL_ShowWindow(mWindow);
+}
+
+void GameObject::HideWindow()
+{
+  SDL_HideWindow(mWindow);
+}
+
+bool GameObject::IsWindowVisible() const
+{
+  return SDL_GetWindowFlags(mWindow) & SDL_WINDOW_SHOWN;
+}

@@ -1,11 +1,13 @@
 #pragma once
 #include <SDL.h>
+#include <SDL_ttf.h>
 #include <vector>
 #include <memory>
+#include <string>
 #include "Ball.h"
 #include "Paddle.h"
 #include "MasterWindow.h"
-
+#include "TextRenderer.h"
 class Game
 {
 public:
@@ -24,11 +26,13 @@ private:
   std::unique_ptr<Ball> mBall;
   std::unique_ptr<Paddle> mPaddle;
   std::unique_ptr<Vector2> mScreen;
+  std::unique_ptr<TextRenderer> mPixelifySansRenderer;
   bool mIsRunning;
   Uint32 mTicksCount;
   const Uint8 *mKeyboardState;
   bool mPrevSpaceKeyState;
   bool isBallCollision;
+  int mScore;
 
   enum class GameState
   {
@@ -40,9 +44,4 @@ private:
   };
 
   GameState mCurrentState;
-  int mScore;
-
-  void RenderStartScreen();
-  void RenderGameOverScreen();
-  void RenderScore();
 };

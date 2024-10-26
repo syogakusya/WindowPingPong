@@ -25,6 +25,11 @@ public:
   Vector2 GetWindowSize() const { return mWindowSize; }
   Vector2 GetWindowPos() const { return mWindowPos; }
 
+  // ウィンドウ表示関係
+  void ShowWindow();
+  void HideWindow();
+  bool IsWindowVisible() const;
+
 protected:
   Vector2 mWorldPos;
   Vector2 mLocalPos;
