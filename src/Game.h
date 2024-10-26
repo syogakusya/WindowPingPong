@@ -4,10 +4,12 @@
 #include <vector>
 #include <memory>
 #include <string>
-#include "Ball.h"
-#include "Paddle.h"
-#include "MasterWindow.h"
-#include "TextRenderer.h"
+#include "GameObjects/Ball.h"
+#include "GameObjects/Paddle.h"
+#include "GameObjects/MasterWindow.h"
+#include "Utils/TextRenderer.h"
+#include "Scenes/SceneManager.h"
+
 class Game
 {
 public:

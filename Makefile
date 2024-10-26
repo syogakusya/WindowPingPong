@@ -25,7 +25,7 @@ CXXFLAGS = -std=c++17 -Wall -Wextra $(SDL_CFLAGS)
 LDFLAGS = $(SDL_LIBS)
 
 # ソースファイルとオブジェクトファイル
-SRCS = $(wildcard $(SRCDIR)/*.cpp)
+SRCS = $(wildcard $(SRCDIR)/*.cpp) $(wildcard $(SRCDIR)/*/*.cpp)
 OBJS = $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(SRCS))
 
 # プロジェクト名（ディレクトリ名から取得）
@@ -37,11 +37,15 @@ TARGET = $(BUILDDIR)/$(PROJECT_NAME)$(EXE)
 # デフォルトターゲット
 all: $(BUILDDIR) $(TARGET)
 
-# ビルドディレクトリの作成
-$(BUILDDIR):
-	$(MKDIR) $(BUILDDIR)
+# サブディレクトリの取得とビルドディレクトリの作成
+SUBDIRS := $(sort $(dir $(SRCS)))
+BUILD_SUBDIRS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SUBDIRS))
 
-# オブジェクトファイルの生成
+# ビルドディレクトリの作成（サブディレクトリを含む）
+$(BUILDDIR):
+	$(MKDIR) $(BUILD_SUBDIRS)
+
+# オブジェクトファイルの生成（順序依存を修正）
 $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 

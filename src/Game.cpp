@@ -209,6 +209,7 @@ void Game::Shutdown()
   mBall.reset();
   mPaddle.reset();
   mMasterWindow.reset();
+  mPixelifySansRenderer.reset();
 
   TTF_Quit();
   SDL_Quit();
