@@ -15,6 +15,10 @@ GameObject::GameObject(
           static_cast<float>(pos.x - size.x / 2),
           static_cast<float>(pos.y - size.y / 2)}
 {
+#ifdef __APPLE__
+  windowFlags |= SDL_WINDOW_METAL | SDL_WINDOW_ALLOW_HIGHDPI;
+#endif
+
   mWindow = SDL_CreateWindow(
       windowName,
       mWindowPos.x,
@@ -22,20 +26,34 @@ GameObject::GameObject(
       mWindowSize.x,
       mWindowSize.y,
       windowFlags);
+
   if (!mWindow)
   {
     SDL_Log("ウィンドウの作成に失敗しました: %s", SDL_GetError());
     return;
   }
 
-  mRenderer = SDL_CreateRenderer(
-      mWindow, -1,
-      SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+  // HiDPIスケーリングを取得
+  int drawableWidth, drawableHeight;
+  SDL_GL_GetDrawableSize(mWindow, &drawableWidth, &drawableHeight);
+  float scaleX = drawableWidth / mWindowSize.x;
+  float scaleY = drawableHeight / mWindowSize.y;
+
+  Uint32 rendererFlags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC;
+#ifdef __APPLE__
+  rendererFlags |= SDL_RENDERER_TARGETTEXTURE;
+#endif
+
+  mRenderer = SDL_CreateRenderer(mWindow, -1, rendererFlags);
+
   if (!mRenderer)
   {
     SDL_Log("レンダラーの作成に失敗しました: %s", SDL_GetError());
     return;
   }
+
+  // レンダラーのスケールを設定
+  SDL_RenderSetScale(mRenderer, scaleX, scaleY);
 }
 
 GameObject::~GameObject()

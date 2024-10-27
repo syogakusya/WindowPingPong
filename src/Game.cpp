@@ -1,20 +1,9 @@
 #include "Game.h"
 
-const int MASTER_WINDOW_HEIGHT = 160;
-const int WINDOW_SIZE = 200;
-const int BALL_SIZE = 16;
-const int PADDLE_WIDTH = 16;
-const int PADDLE_HEIGHT = 100;
-const float PADDLE_SPEED = 300.0f;
-const int UI_MARGIN = 6;
-
 Game::Game()
     : mIsRunning(true),
       mTicksCount(0),
-      mPrevSpaceKeyState(false),
-      mCurrentState(GameState::Start),
-      mScore(0),
-      isBallCollision(false)
+      mSceneManager(SceneManager::GetInstance()) // シングルトンインスタンスの参照を保持
 {
 }
 
@@ -32,51 +21,9 @@ bool Game::Initialize()
     return false;
   }
 
-  mScreen = std::unique_ptr<Vector2>(new Vector2());
-  SDL_DisplayMode displayMode;
-  if (SDL_GetCurrentDisplayMode(0, &displayMode) == 0)
-  {
-    mScreen->x = displayMode.w;
-    mScreen->y = displayMode.h;
-
-    GameObject::mScreenSize = *mScreen;
-
-    printf("mScreen->x: %f, mScreen->y: %f\n", mScreen->x, mScreen->y);
-  }
-  else
-  {
-    SDL_Log("ディスプレイモードの取得に失敗しました: %s", SDL_GetError());
-    return false;
-  }
-
-  mMasterWindow =
-      std::unique_ptr<MasterWindow>(
-          new MasterWindow(
-              "WindowsPingPong",
-              Vector2(mScreen->x / 2, 0),
-              Vector2(mScreen->x, MASTER_WINDOW_HEIGHT),
-              UI_MARGIN,
-              SDL_WINDOW_ALWAYS_ON_TOP | SDL_WINDOW_BORDERLESS));
-  mBall = std::unique_ptr<Ball>(
-      new Ball(
-          Vector2(mScreen->x / 2, mScreen->y / 2),
-          Vector2(WINDOW_SIZE, WINDOW_SIZE),
-          BALL_SIZE,
-          mMasterWindow->GetOffSetY()));
-  mPaddle = std::unique_ptr<Paddle>(
-      new Paddle(
-          Vector2(mScreen->x / 4, mScreen->y / 2),
-          Vector2(WINDOW_SIZE, WINDOW_SIZE),
-          PADDLE_WIDTH, PADDLE_HEIGHT, mMasterWindow->GetOffSetY()));
-
-  mPixelifySansRenderer = std::unique_ptr<TextRenderer>(
-      new TextRenderer("../font/PixelifySans-VariableFont_wght.ttf", 24));
-
-  mCurrentState = GameState::Playing;
-  mIsRunning = true;
-  mTicksCount = 0;
-  mScore = 0;
-
+  // シーンの作成と変更をより安全に行う
+  auto startScene = std::make_unique<StartScene>();
+  mSceneManager.ChangeScene(std::move(startScene)); // メンバ変数経由でアクセス
   return true;
 }
 
@@ -110,33 +57,7 @@ void Game::ProcessInput()
     mIsRunning = false;
   }
 
-  if (mCurrentState == GameState::Playing)
-  {
-    float paddleDir = 0.0f;
-    if (mKeyboardState[SDL_SCANCODE_UP] || mKeyboardState[SDL_SCANCODE_W])
-    {
-      paddleDir -= 1.0f;
-    }
-    if (mKeyboardState[SDL_SCANCODE_DOWN] || mKeyboardState[SDL_SCANCODE_S])
-    {
-      paddleDir += 1.0f;
-    }
-    mPaddle->SetDirection(paddleDir);
-  }
-
-  bool spaceDown = mKeyboardState[SDL_SCANCODE_SPACE];
-  if (spaceDown && !mPrevSpaceKeyState)
-  {
-    if (mCurrentState == GameState::Playing)
-    {
-      mCurrentState = GameState::Pause;
-    }
-    else if (mCurrentState == GameState::Pause)
-    {
-      mCurrentState = GameState::Playing;
-    }
-  }
-  mPrevSpaceKeyState = spaceDown;
+  mSceneManager.HandleInput(mKeyboardState);
 }
 
 void Game::UpdateGame()
@@ -152,65 +73,17 @@ void Game::UpdateGame()
     deltaTime = 0.05f;
   }
 
-  if (mCurrentState == GameState::Playing)
-  {
-    mBall->Update(deltaTime);
-    mPaddle->Update(deltaTime);
-    CheckCollisions();
-  }
+  mSceneManager.Update(deltaTime);
 }
 
 void Game::GenerateOutput()
 {
-  mMasterWindow->Draw(mMasterWindow->GetRenderer());
-  mBall->Draw(mBall->GetRenderer());
-  mPaddle->Draw(mPaddle->GetRenderer());
-  mPaddle->DrawBall(mPaddle->GetRenderer(), mBall.get());
-
-  SDL_Color textColor = {255, 255, 255, 255};
-  mPixelifySansRenderer->RenderText(
-      "Score: " + std::to_string(mScore),
-      10,
-      10,
-      textColor,
-      mMasterWindow->GetRenderer());
-
-  mBall->RenderPresent(mBall->GetRenderer());
-  mPaddle->RenderPresent(mPaddle->GetRenderer());
-  mMasterWindow->RenderPresent(mMasterWindow->GetRenderer());
-}
-
-void Game::CheckCollisions()
-{
-  // ボールとパドルの衝突判定
-  Vector2 ballPos = mBall->GetWorldPos();
-  Vector2 paddlePos = mPaddle->GetWorldPos();
-
-  if (ballPos.y - BALL_SIZE / 2.0f < paddlePos.y + PADDLE_HEIGHT / 2.0f &&
-      ballPos.y + BALL_SIZE / 2.0f > paddlePos.y - PADDLE_HEIGHT / 2.0f &&
-      paddlePos.x - PADDLE_WIDTH / 2.0f < ballPos.x + BALL_SIZE / 2.0f &&
-      paddlePos.x + PADDLE_WIDTH / 2.0f > ballPos.x - BALL_SIZE / 2.0f)
-  {
-    if (isBallCollision == false)
-    {
-      mBall->ReverseVelocityX();
-      mScore++;
-    }
-    isBallCollision = true;
-  }
-  else
-  {
-    isBallCollision = false;
-  }
+  mSceneManager.Render();
 }
 
 void Game::Shutdown()
 {
-  mBall.reset();
-  mPaddle.reset();
-  mMasterWindow.reset();
-  mPixelifySansRenderer.reset();
-
+  mSceneManager.Shutdown();
   TTF_Quit();
   SDL_Quit();
 }

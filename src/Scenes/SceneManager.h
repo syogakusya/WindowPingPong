@@ -5,10 +5,22 @@
 class SceneManager
 {
 public:
+  static SceneManager &GetInstance()
+  {
+    static SceneManager instance;
+    return instance;
+  }
+
+  SceneManager() = default;
+  ~SceneManager() = default;
+  SceneManager(const SceneManager &) = delete;
+  SceneManager &operator=(const SceneManager &) = delete;
+
   void ChangeScene(std::unique_ptr<Scene> newScene);
   void HandleInput(const Uint8 *keyState);
   void Update(float deltaTime);
   void Render();
+  void Shutdown();
 
 private:
   std::unique_ptr<Scene> mCurrentScene;

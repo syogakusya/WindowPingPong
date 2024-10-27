@@ -18,8 +18,14 @@ else
 		SDL_CFLAGS = $$(sdl2-config --cflags) $$(pkg-config --cflags SDL2_ttf)
 		SDL_LIBS = $$(sdl2-config --libs) $$(pkg-config --libs SDL2_ttf)
 endif
+
 # コンパイルオプション
-CXXFLAGS = -std=c++17 -Wall -Wextra $(SDL_CFLAGS)
+CXXFLAGS = -std=c++17 -Wall -Wextra -g $(SDL_CFLAGS)  # -gオプションを追加
+
+# macOS向けの追加フラグ
+ifeq ($(shell uname),Darwin)
+	CXXFLAGS += -framework Cocoa -framework Metal -framework MetalKit
+endif
 
 # リンクオプション
 LDFLAGS = $(SDL_LIBS)
