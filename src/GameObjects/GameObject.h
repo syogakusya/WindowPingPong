@@ -19,6 +19,7 @@ public:
   SDL_Window *GetWindow() const { return mWindow; }
   SDL_Renderer *GetRenderer() const { return mRenderer; }
 
+  // ゲッタ
   Vector2 GetWorldPos() const { return mWorldPos; }
   Vector2 GetLocalPos() const { return mLocalPos; }
   Vector2 GetVelocity() const { return mVelocity; }

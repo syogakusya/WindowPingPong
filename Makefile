@@ -1,3 +1,6 @@
+# プロジェクト名（ディレクトリ名から取得）
+PROJECT_NAME := $(notdir $(CURDIR))
+
 # コンパイラの設定
 ifeq ($(OS),Windows_NT)
 		BUILDDIR = build
@@ -20,11 +23,15 @@ else
 endif
 
 # コンパイルオプション
-CXXFLAGS = -std=c++17 -Wall -Wextra -g $(SDL_CFLAGS)  # -gオプションを追加
+CXXFLAGS = -std=c++17 -Wall -Wextra -g $(SDL_CFLAGS)
 
-# macOS向けの追加フラグ
+# macOS向けの追加設定
 ifeq ($(shell uname),Darwin)
 	CXXFLAGS += -framework Cocoa -framework Metal -framework MetalKit
+	APP_NAME = $(PROJECT_NAME).app
+	APP_CONTENTS = $(APP_NAME)/Contents
+	APP_MACOS = $(APP_CONTENTS)/MacOS
+	APP_RESOURCES = $(APP_CONTENTS)/Resources
 endif
 
 # リンクオプション
@@ -34,33 +41,74 @@ LDFLAGS = $(SDL_LIBS)
 SRCS = $(wildcard $(SRCDIR)/*.cpp) $(wildcard $(SRCDIR)/*/*.cpp)
 OBJS = $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(SRCS))
 
-# プロジェクト名（ディレクトリ名から取得）
-PROJECT_NAME := $(notdir $(CURDIR))
-
 # 実行ファイル名
 TARGET = $(BUILDDIR)/$(PROJECT_NAME)$(EXE)
-
-# デフォルトターゲット
-all: $(BUILDDIR) $(TARGET)
 
 # サブディレクトリの取得とビルドディレクトリの作成
 SUBDIRS := $(sort $(dir $(SRCS)))
 BUILD_SUBDIRS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SUBDIRS))
 
-# ビルドディレクトリの作成（サブディレクトリを含む）
-$(BUILDDIR):
-	$(MKDIR) $(BUILD_SUBDIRS)
+# フォントファイルのパスを定義（プロジェクトのルートディレクトリからの相対パス）
+FONT_PATH = fonts
 
-# オブジェクトファイルの生成（順序依存を修正）
+.PHONY: all clean bundle
+
+# デフォルトターゲット
+all: $(BUILDDIR) $(TARGET)
+ifeq ($(shell uname),Darwin)
+	$(MAKE) bundle
+endif
+
+# ビルドディレクトリの作成
+$(BUILDDIR):
+	@$(MKDIR) $(BUILD_SUBDIRS)
+
+# オブジェクトファイルの生成
 $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	@echo "Compiling $<..."
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # 実行ファイルの生成
 $(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+	@echo "Linking $@..."
+	@$(CXX) $(OBJS) -o $@ $(LDFLAGS)
 
-# クリーンアップ（ビルドディレクトリを削除）
+# macOS用の.appバンドル作成
+bundle:
+ifeq ($(shell uname),Darwin)
+	@echo "Creating application bundle..."
+	@mkdir -p $(APP_MACOS)
+	@mkdir -p $(APP_RESOURCES)
+	@mkdir -p $(APP_RESOURCES)/fonts
+	@cp $(TARGET) $(APP_MACOS)/$(PROJECT_NAME)
+	@cp $(FONT_PATH)/*.ttf $(APP_RESOURCES)/fonts/
+	@echo "Copying fonts to Resources directory..."
+	@echo '<?xml version="1.0" encoding="UTF-8"?>\
+	<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\
+	<plist version="1.0">\
+	<dict>\
+		<key>CFBundleExecutable</key>\
+			<string>$(PROJECT_NAME)</string>\
+		<key>CFBundleIdentifier</key>\
+			<string>com.example.$(PROJECT_NAME)</string>\
+		<key>CFBundleName</key>\
+			<string>$(PROJECT_NAME)</string>\
+		<key>CFBundlePackageType</key>\
+			<string>APPL</string>\
+		<key>CFBundleShortVersionString</key>\
+			<string>1.0</string>\
+		<key>LSMinimumSystemVersion</key>\
+			<string>10.10</string>\
+	</dict>\
+	</plist>' > $(APP_CONTENTS)/Info.plist
+	@echo "Application bundle created: $(APP_NAME)"
+endif
+
+# クリーンアップ
 clean:
-	$(RM) $(BUILDDIR)
-
-.PHONY: all clean
+	@echo "Cleaning build directory..."
+	@$(RM) $(BUILDDIR)
+ifeq ($(shell uname),Darwin)
+	@echo "Cleaning application bundle..."
+	@$(RM) $(APP_NAME)
+endif

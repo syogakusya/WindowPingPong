@@ -33,7 +33,7 @@ void StartScene::Initialize()
           SDL_WINDOW_ALWAYS_ON_TOP | SDL_WINDOW_BORDERLESS));
 
   mPixelifySansRenderer = std::unique_ptr<TextRenderer>(
-      new TextRenderer("../font/PixelifySans-VariableFont_wght.ttf", 24));
+      new TextRenderer("PixelifySans-VariableFont_wght.ttf", 24));
 }
 
 void StartScene::HandleInput(const Uint8 *keyState)

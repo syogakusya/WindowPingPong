@@ -56,7 +56,7 @@ void GamePlayScene::Initialize()
           PADDLE_WIDTH, PADDLE_HEIGHT, mMasterWindow->GetOffSetY()));
 
   mPixelifySansRenderer = std::unique_ptr<TextRenderer>(
-      new TextRenderer("../font/PixelifySans-VariableFont_wght.ttf", 24));
+      new TextRenderer("PixelifySans-VariableFont_wght.ttf", 24));
 
   mCurrentState = GameState::Playing;
 }
