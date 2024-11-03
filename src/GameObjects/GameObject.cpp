@@ -5,26 +5,31 @@ Vector2 GameObject::mScreenSize = Vector2(0, 0);
 GameObject::GameObject(
     const char *windowName,
     Vector2 pos, Vector2 size, Uint32 windowFlags)
-    : mWorldPos{static_cast<float>(pos.x), static_cast<float>(pos.y)},
-      mLocalPos{static_cast<float>(size.x / 2),
-                static_cast<float>(size.y / 2)},
+    : mWorldPos{pos.x, pos.y},
+      mLocalPos{size.x / 2, size.y / 2},
       mVelocity{0.0f, 0.0f},
-      mWindowSize{static_cast<float>(size.x),
-                  static_cast<float>(size.y)},
-      mWindowPos{
-          static_cast<float>(pos.x - size.x / 2),
-          static_cast<float>(pos.y - size.y / 2)}
+      mWindowSize{size.x, size.y},
+      mWindowPos{pos.x - size.x / 2, pos.y - size.y / 2},
+      mIsShaking(false),
+      mShakeTime(0.0f),
+      mShakeIntensity(0.0f),
+      mShakeOffset(0.0f, 0.0f),
+      mOriginalWindowPos(mWindowPos),
+      mOriginalWorldPos(mWorldPos),
+      mRandomEngine(std::random_device{}()),
+      mRandomDistribution(-1.0f, 1.0f)
 {
 #ifdef __APPLE__
   windowFlags |= SDL_WINDOW_METAL | SDL_WINDOW_ALLOW_HIGHDPI;
 #endif
 
+  // ウィンドウの作成
   mWindow = SDL_CreateWindow(
       windowName,
-      mWindowPos.x,
-      mWindowPos.y,
-      mWindowSize.x,
-      mWindowSize.y,
+      static_cast<int>(mWindowPos.x),
+      static_cast<int>(mWindowPos.y),
+      static_cast<int>(mWindowSize.x),
+      static_cast<int>(mWindowSize.y),
       windowFlags);
 
   if (!mWindow)
@@ -76,6 +81,11 @@ void GameObject::UpdateLocalPos()
   mLocalPos = mWorldPos - mWindowPos;
 }
 
+void GameObject::RenderPresent(SDL_Renderer *renderer)
+{
+  SDL_RenderPresent(renderer);
+}
+
 void GameObject::ShowWindow()
 {
   SDL_ShowWindow(mWindow);
@@ -86,7 +96,39 @@ void GameObject::HideWindow()
   SDL_HideWindow(mWindow);
 }
 
-bool GameObject::IsWindowVisible() const
+bool GameObject::IsWindowVisible()
 {
   return SDL_GetWindowFlags(mWindow) & SDL_WINDOW_SHOWN;
+}
+
+void GameObject::UpdateShakeEffect(float deltaTime)
+{
+  if (mIsShaking)
+  {
+    mShakeTime -= deltaTime;
+    if (mShakeTime <= 0.0f)
+    {
+      mIsShaking = false;
+      mShakeOffset = Vector2(0.0f, 0.0f);
+      mWindowPos = mOriginalWindowPos;
+      mWorldPos = mOriginalWorldPos;
+    }
+    else
+    {
+      float randX = mRandomDistribution(mRandomEngine);
+      float randY = mRandomDistribution(mRandomEngine);
+      mShakeOffset = Vector2(randX, randY) * mShakeIntensity;
+      mWindowPos = mOriginalWindowPos + mShakeOffset;
+      mWorldPos = mOriginalWorldPos + mShakeOffset;
+    }
+  }
+}
+
+void GameObject::StartShake(float duration, float intensity)
+{
+  mIsShaking = true;
+  mShakeTime = duration;
+  mShakeIntensity = intensity;
+  mOriginalWindowPos = mWindowPos;
+  mOriginalWorldPos = mWorldPos;
 }

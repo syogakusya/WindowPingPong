@@ -21,10 +21,12 @@ public:
   void Shutdown() override;
 
 private:
-  void CheckCollisions();
+  void CheckCollisions(std::unique_ptr<Ball> &ball);
+  void AddBall(Vector2 pos, Vector2 velocity);
 
   std::unique_ptr<MasterWindow> mMasterWindow;
   std::unique_ptr<Ball> mBall;
+  std::vector<std::unique_ptr<Ball>> mBalls;
   std::unique_ptr<Paddle> mPaddle;
   std::unique_ptr<Vector2> mScreen;
   std::unique_ptr<TextRenderer> mPixelifySansRenderer;

@@ -10,7 +10,7 @@ public:
   void Draw(SDL_Renderer *renderer) override;
   void SetDirection(float direction);
   void DrawBall(SDL_Renderer *renderer, Ball *ball);
-  void RenderPresent(SDL_Renderer *renderer) override;
+  void ToggleMouseFollow();
 
 private:
   float mDirection;
@@ -18,7 +18,9 @@ private:
   int mPaddleWidth;
   int mPaddleHeight;
   int mOffSetY;
+  bool mIsFollowingMouse;
 
+  void UpdateMouseFollow();
   void ClampWindowPosition();
   void ClampPaddlePosition();
 };

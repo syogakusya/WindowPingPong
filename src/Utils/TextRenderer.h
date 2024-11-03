@@ -22,9 +22,12 @@ public:
     LCD
   };
 
+  void SetFontSize(int fontSize);
+
 private:
   std::string GetFontPath(const std::string &fontPath);
 
   TTF_Font *mFont;
+  std::string mFontPath;
   int mFontSize;
 };

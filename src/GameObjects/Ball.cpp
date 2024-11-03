@@ -31,11 +31,6 @@ void Ball::Draw(SDL_Renderer *renderer)
   SDL_RenderFillRect(renderer, &ball);
 }
 
-void Ball::RenderPresent(SDL_Renderer *renderer)
-{
-  SDL_RenderPresent(renderer);
-}
-
 void Ball::ClampWindowPosition()
 {
   // 左

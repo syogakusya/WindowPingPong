@@ -27,7 +27,3 @@ void MasterWindow::Draw(SDL_Renderer *renderer)
     SDL_RenderFillRect(renderer, &background);
 }
 
-void MasterWindow::RenderPresent(SDL_Renderer *renderer)
-{
-    SDL_RenderPresent(renderer);
-}

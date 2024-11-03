@@ -11,23 +11,31 @@ Paddle::Paddle(
       mSpeed(PADDLE_SPEED),
       mPaddleWidth(paddleWidth),
       mPaddleHeight(paddleHeight),
-      mOffSetY(offSetY)
+      mOffSetY(offSetY),
+      mIsFollowingMouse(false)
 {
 }
 
 void Paddle::Update(float deltaTime)
 {
-    // マウスによるウィンドウ操作に対応
-    int paddleX, paddleY;
-
-    SDL_GetWindowPosition(mWindow, &paddleX, &paddleY);
-    mWindowPos = Vector2(static_cast<float>(paddleX), static_cast<float>(paddleY));
-    mWorldPos = mWindowPos + mLocalPos;
+    if (mIsFollowingMouse)
+    {
+        UpdateMouseFollow();
+    }
+    else
+    {
+        // マウスによるウィンドウ操作に対応
+        int paddleX, paddleY;
+        SDL_GetWindowPosition(mWindow, &paddleX, &paddleY);
+        mWindowPos = Vector2(static_cast<float>(paddleX), static_cast<float>(paddleY));
+        mWorldPos = mWindowPos + mLocalPos;
+        mWindowPos.y = mWorldPos.y - mWindowSize.y / 2.0f;
+    }
 
     mWorldPos.y += mDirection * mSpeed * deltaTime;
-    mWindowPos.y = mWorldPos.y - mWindowSize.y / 2.0f;
     ClampPaddlePosition();
     ClampWindowPosition();
+    UpdateShakeEffect(deltaTime);
     UpdateWindowPosition();
     mDirection = 0.0f;
 }
@@ -53,11 +61,6 @@ void Paddle::DrawBall(SDL_Renderer *renderer, Ball *ball)
         static_cast<int>(ball->GetBallSize()),
         static_cast<int>(ball->GetBallSize())};
     SDL_RenderFillRect(renderer, &ball_);
-}
-
-void Paddle::RenderPresent(SDL_Renderer *renderer)
-{
-    SDL_RenderPresent(renderer);
 }
 
 void Paddle::SetDirection(float direction)
@@ -106,5 +109,28 @@ void Paddle::ClampPaddlePosition()
     else if (paddleBottom > GameObject::mScreenSize.y)
     {
         mWorldPos.y = GameObject::mScreenSize.y - mPaddleHeight / 2.0f;
+    }
+}
+
+void Paddle::UpdateMouseFollow()
+{
+    int mouseX, mouseY;
+    SDL_GetGlobalMouseState(&mouseX, &mouseY);
+
+    mWindowPos.x = mouseX - mWindowSize.x / 2.0f;
+    mWindowPos.y = mouseY - mWindowSize.y / 2.0f;
+    mWorldPos.x = mouseX;
+    mWorldPos.y = mouseY;
+}
+
+void Paddle::ToggleMouseFollow()
+{
+    mIsFollowingMouse = !mIsFollowingMouse;
+    if (mIsFollowingMouse)
+    {
+        // マウスをパドルの位置に移動
+        SDL_WarpMouseGlobal(
+            static_cast<int>(mWindowPos.x + mWindowSize.x / 2.0f),
+            static_cast<int>(mWorldPos.y));
     }
 }

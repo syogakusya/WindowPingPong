@@ -7,7 +7,8 @@ std::string TextRenderer::GetFontPath(const std::string &fontPath)
 }
 
 TextRenderer::TextRenderer(const std::string &fontPath, int fontSize)
-    : mFontSize(fontSize)
+    : mFontSize(fontSize),
+      mFontPath(fontPath)
 {
   if (TTF_Init() == -1)
   {
@@ -15,7 +16,7 @@ TextRenderer::TextRenderer(const std::string &fontPath, int fontSize)
     return;
   }
 
-  mFont = TTF_OpenFont(GetFontPath(fontPath).c_str(), fontSize);
+  mFont = TTF_OpenFont(GetFontPath(mFontPath).c_str(), mFontSize);
   if (!mFont)
   {
     SDL_Log("TTF_OpenFont: %s\n", TTF_GetError());
@@ -54,4 +55,25 @@ void TextRenderer::RenderText(
 
   SDL_FreeSurface(surface);
   SDL_DestroyTexture(texture);
+}
+
+void TextRenderer::SetFontSize(int fontSize)
+{
+  if (mFontSize == fontSize)
+    return;
+
+  mFontSize = fontSize;
+
+  // 既存のフォントを解放
+  if (mFont)
+  {
+    TTF_CloseFont(mFont);
+  }
+
+  // 新しいサイズでフォントを再読み込み
+  mFont = TTF_OpenFont(GetFontPath(mFontPath).c_str(), fontSize);
+  if (!mFont)
+  {
+    SDL_Log("フォントの再読み込みに失敗しました: %s\n", TTF_GetError());
+  }
 }

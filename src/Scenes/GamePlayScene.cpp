@@ -1,4 +1,4 @@
-#include "GameplayScene.h"
+#include "GamePlayScene.h"
 
 const int MASTER_WINDOW_HEIGHT = 160;
 const int WINDOW_SIZE = 200;
@@ -49,6 +49,7 @@ void GamePlayScene::Initialize()
           Vector2(WINDOW_SIZE, WINDOW_SIZE),
           BALL_SIZE,
           mMasterWindow->GetOffSetY()));
+  mBalls.push_back(std::move(mBall));
   mPaddle = std::unique_ptr<Paddle>(
       new Paddle(
           Vector2(mScreen->x / 4, mScreen->y / 2),
@@ -63,18 +64,26 @@ void GamePlayScene::Initialize()
 
 void GamePlayScene::HandleInput(const Uint8 *keyBoardState)
 {
+  float paddleDir = 0.0f;
   if (mCurrentState == GameState::Playing)
   {
-    float paddleDir = 0.0f;
     if (keyBoardState[SDL_SCANCODE_UP] || keyBoardState[SDL_SCANCODE_W])
     {
-      paddleDir -= 1.0f;
+      paddleDir = -1.0f;
     }
     if (keyBoardState[SDL_SCANCODE_DOWN] || keyBoardState[SDL_SCANCODE_S])
     {
-      paddleDir += 1.0f;
+      paddleDir = 1.0f;
     }
     mPaddle->SetDirection(paddleDir);
+
+    static bool prevCKeyState = false;
+    bool currentCKeyState = keyBoardState[SDL_SCANCODE_C];
+    if (currentCKeyState && !prevCKeyState)
+    {
+      mPaddle->ToggleMouseFollow();
+    }
+    prevCKeyState = currentCKeyState;
   }
 
   bool spaceDown = keyBoardState[SDL_SCANCODE_SPACE];
@@ -96,18 +105,27 @@ void GamePlayScene::Update(float deltaTime)
 {
   if (mCurrentState == GameState::Playing)
   {
-    mBall->Update(deltaTime);
+    for (auto &ball : mBalls)
+    {
+      ball->Update(deltaTime);
+      CheckCollisions(ball);
+    }
     mPaddle->Update(deltaTime);
-    CheckCollisions();
   }
 }
 
 void GamePlayScene::Render()
 {
   mMasterWindow->Draw(mMasterWindow->GetRenderer());
-  mBall->Draw(mBall->GetRenderer());
+  for (auto &ball : mBalls)
+  {
+    ball->Draw(ball->GetRenderer());
+  }
   mPaddle->Draw(mPaddle->GetRenderer());
-  mPaddle->DrawBall(mPaddle->GetRenderer(), mBall.get());
+  for (auto &ball : mBalls)
+  {
+    mPaddle->DrawBall(mPaddle->GetRenderer(), ball.get());
+  }
 
   SDL_Color textColor = {255, 255, 255, 255};
   mPixelifySansRenderer->RenderText(
@@ -117,13 +135,18 @@ void GamePlayScene::Render()
       textColor,
       mMasterWindow->GetRenderer());
 
-  mBall->RenderPresent(mBall->GetRenderer());
+  // RenderPresent
+  for (auto &ball : mBalls)
+  {
+    ball->RenderPresent(ball->GetRenderer());
+  }
   mPaddle->RenderPresent(mPaddle->GetRenderer());
   mMasterWindow->RenderPresent(mMasterWindow->GetRenderer());
 }
 
 void GamePlayScene::Shutdown()
 {
+  mBalls.clear();
   mBall.reset();
   mPaddle.reset();
   mMasterWindow.reset();
@@ -131,10 +154,10 @@ void GamePlayScene::Shutdown()
   mScreen.reset();
 }
 
-void GamePlayScene::CheckCollisions()
+void GamePlayScene::CheckCollisions(std::unique_ptr<Ball> &ball)
 {
   // ボールとパドルの衝突判定
-  Vector2 ballPos = mBall->GetWorldPos();
+  Vector2 ballPos = ball->GetWorldPos();
   Vector2 paddlePos = mPaddle->GetWorldPos();
 
   if (ballPos.y - BALL_SIZE / 2.0f < paddlePos.y + PADDLE_HEIGHT / 2.0f &&
@@ -144,7 +167,7 @@ void GamePlayScene::CheckCollisions()
   {
     if (isBallCollision == false)
     {
-      mBall->ReverseVelocityX();
+      ball->ReverseVelocityX();
       mScore++;
     }
     isBallCollision = true;
@@ -153,4 +176,12 @@ void GamePlayScene::CheckCollisions()
   {
     isBallCollision = false;
   }
+}
+
+void GamePlayScene::AddBall(Vector2 pos, Vector2 velocity)
+{
+  mBall = std::unique_ptr<Ball>(
+      new Ball(pos, Vector2(WINDOW_SIZE, WINDOW_SIZE), BALL_SIZE, mMasterWindow->GetOffSetY()));
+  mBall->SetVelocity(velocity);
+  mBalls.push_back(std::move(mBall));
 }
