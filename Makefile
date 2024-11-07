@@ -112,3 +112,11 @@ ifeq ($(shell uname),Darwin)
 	@echo "Cleaning application bundle..."
 	@$(RM) $(APP_NAME)
 endif
+
+run:
+	@echo "Running $(TARGET)..."
+ifeq ($(shell uname),Darwin)
+	@open ./WindowPingPong.app
+else
+	@./build/WindowPingPong.exe
+endif
