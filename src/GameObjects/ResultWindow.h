@@ -9,4 +9,5 @@ public:
   void Draw(SDL_Renderer *renderer) override;
 
 private:
+  int mMargin;
 };
