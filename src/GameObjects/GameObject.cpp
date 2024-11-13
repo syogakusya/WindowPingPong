@@ -132,3 +132,19 @@ void GameObject::StartShake(float duration, float intensity)
   mOriginalWindowPos = mWindowPos;
   mOriginalWorldPos = mWorldPos;
 }
+
+bool GameObject::CheckWindowCollision(SDL_Rect *other) const
+{
+  SDL_Rect rect1 = GetWindowRect();
+  return SDL_HasIntersection(&rect1, other);
+}
+
+SDL_Rect GameObject::GetWindowRect() const
+{
+  SDL_Rect rect;
+  rect.x = static_cast<int>(mWindowPos.x);
+  rect.y = static_cast<int>(mWindowPos.y);
+  rect.w = static_cast<int>(mWindowSize.x);
+  rect.h = static_cast<int>(mWindowSize.y);
+  return rect;
+}

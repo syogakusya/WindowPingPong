@@ -29,11 +29,11 @@ void SceneManager::Update(float deltaTime)
   }
 }
 
-void SceneManager::Render()
+void SceneManager::Draw()
 {
   if (mCurrentScene)
   {
-    mCurrentScene->Render();
+    mCurrentScene->Draw();
   }
 }
 

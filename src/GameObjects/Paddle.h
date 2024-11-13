@@ -11,6 +11,8 @@ public:
   void SetDirection(float direction);
   void DrawBall(SDL_Renderer *renderer, Ball *ball);
   void ToggleMouseFollow();
+  SDL_Rect GetPaddleRect() const;
+  bool CheckPaddleCollision(SDL_Rect *other) const;
 
 private:
   float mDirection;

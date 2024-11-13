@@ -35,9 +35,9 @@ void StartScene::Initialize()
       new TextRenderer("PixelifySans-VariableFont_wght.ttf", 24));
 
   char title[9] = "PINGPONG";
-  for (int i = 0; i < static_cast<int>(strlen(title)); ++i) // 5つのLogoWindowを生成する例
+  for (int i = 0; i < static_cast<int>(strlen(title)); ++i)
   {
-    char title_[2] = {title[i], '\0'}; // ヌル文字を加
+    char title_[2] = {title[i], '\0'};
     float posX = mScreen->x / 9 + mScreen->x / 9 * i;
     float posY = mScreen->y / 2 + std::sin(i * 5) * 100;
     auto logoWindow = std::make_unique<LogoWindow>(
@@ -82,37 +82,40 @@ void StartScene::Update(float deltaTime)
 
 void StartScene::CheckCollisions(Ball *ball, LogoWindow *logoWindow)
 {
-  Vector2 ballPos = ball->GetWorldPos();
-  Vector2 logoWindowSize = logoWindow->GetWindowSize();
-  Vector2 logoPos = logoWindow->GetWindowPos();
-  float ballSize = ball->GetBallSize();
+  SDL_Rect logoRect = logoWindow->GetWindowRect();
 
-  if (IsColliding(ballPos, ballSize, logoPos, logoWindowSize))
+  if (ball->CheckBallCollision(&logoRect))
   {
-    // シェイクエフェクトを開始
     logoWindow->StartShake(0.15f, 5.0f);
-    // 上下の衝突
-    if (ballPos.y < logoPos.y || ballPos.y > logoPos.y + logoWindowSize.y)
+
+    Vector2 ballPos = ball->GetWorldPos();
+    Vector2 logoPos = logoWindow->GetWindowPos();
+    Vector2 logoSize = logoWindow->GetWindowSize();
+
+    // 上下の衝突判定
+    if (ballPos.y < logoPos.y + ball->GetBallSize() / 2.0f ||
+        ballPos.y > logoPos.y + logoSize.y - ball->GetBallSize() / 2.0f)
     {
       if (!prevBallReverseY)
       {
         ball->ReverseVelocityY();
+        prevBallReverseY = true;
       }
-      prevBallReverseY = true;
     }
     else
     {
       prevBallReverseY = false;
     }
 
-    // 左右の衝突
-    if (ballPos.x < logoPos.x || ballPos.x > logoPos.x + logoWindowSize.x)
+    // 左右の衝突判定
+    if (ballPos.x < logoPos.x + ball->GetBallSize() / 2.0f ||
+        ballPos.x > logoPos.x + logoSize.x - ball->GetBallSize() / 2.0f)
     {
       if (!prevBallReverseX)
       {
         ball->ReverseVelocityX();
+        prevBallReverseX = true;
       }
-      prevBallReverseX = true;
     }
     else
     {
@@ -126,17 +129,7 @@ void StartScene::CheckCollisions(Ball *ball, LogoWindow *logoWindow)
   }
 }
 
-bool StartScene::IsColliding(
-    const Vector2 &ballPos, const float &ballSize,
-    const Vector2 &logoPos, const Vector2 &logoWindowSize)
-{
-  return (ballPos.x + ballSize / 2.0f > logoPos.x &&                    // 右
-          ballPos.x - ballSize / 2.0f < logoPos.x + logoWindowSize.x && // 左
-          ballPos.y + ballSize / 2.0f > logoPos.y &&                    // 下
-          ballPos.y - ballSize / 2.0f < logoPos.y + logoWindowSize.y);  // 上
-}
-
-void StartScene::Render()
+void StartScene::Draw()
 {
   mBall->Draw(mBall->GetRenderer());
 

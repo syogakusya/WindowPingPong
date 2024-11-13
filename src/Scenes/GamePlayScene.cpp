@@ -1,4 +1,5 @@
 #include "GamePlayScene.h"
+#include <iostream>
 
 const int MASTER_WINDOW_HEIGHT = 160;
 const int WINDOW_SIZE = 200;
@@ -7,10 +8,11 @@ const int PADDLE_WIDTH = 16;
 const int PADDLE_HEIGHT = 100;
 const float PADDLE_SPEED = 300.0f;
 const int UI_MARGIN = 6;
+const float MAX_BALL_SPEED = 500.0f;
 
 GamePlayScene::GamePlayScene()
-    : mScore(0),
-      mPrevSpaceKeyState(false),
+    : mPrevSpaceKeyState(false),
+      mScore(0),
       isBallCollision(false),
       mCurrentState(GameState::Start)
 {
@@ -26,8 +28,6 @@ void GamePlayScene::Initialize()
     mScreen->y = displayMode.h;
 
     GameObject::mScreenSize = *mScreen;
-
-    printf("mScreen->x: %f, mScreen->y: %f\n", mScreen->x, mScreen->y);
   }
   else
   {
@@ -49,6 +49,7 @@ void GamePlayScene::Initialize()
           Vector2(WINDOW_SIZE, WINDOW_SIZE),
           BALL_SIZE,
           mMasterWindow->GetOffSetY()));
+  mBall->SetVelocity(Vector2(-120.0f, 135.0f));
   mBalls.push_back(std::move(mBall));
   mPaddle = std::unique_ptr<Paddle>(
       new Paddle(
@@ -60,10 +61,31 @@ void GamePlayScene::Initialize()
       new TextRenderer("PixelifySans-VariableFont_wght.ttf", 24));
 
   mCurrentState = GameState::Playing;
+
+  SDL_Color normalColor = {100, 100, 100, 255};
+  SDL_Color hoverColor = {150, 150, 150, 255};
+  mRestartButton = std::make_unique<Button>(
+      "Restart",
+      Vector2(mScreen->x / 2 - 50, 10),
+      Vector2(100, 40),
+      normalColor,
+      hoverColor);
+
+  mRestartButton->SetOnClick([this]()
+                             {
+      // リスタート処理
+      mScore = 0;
+      // ボールの位置とスピードをリセット
+    for (auto &ball : mBalls)
+    {
+      ball->SetVelocity(Vector2(-120.0f, 135.0f));
+      ball->SetWorldPos(Vector2(mScreen->x / 2, mScreen->y / 2));
+      } });
 }
 
 void GamePlayScene::HandleInput(const Uint8 *keyBoardState)
 {
+  // キーボード
   float paddleDir = 0.0f;
   if (mCurrentState == GameState::Playing)
   {
@@ -99,6 +121,18 @@ void GamePlayScene::HandleInput(const Uint8 *keyBoardState)
     }
   }
   mPrevSpaceKeyState = spaceDown;
+
+  // マウス
+  int mouseX, mouseY;
+  Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+  mLastMousePos = Vector2(static_cast<float>(mouseX), static_cast<float>(mouseY));
+
+  bool isMousePressed = mouseState & SDL_BUTTON(SDL_BUTTON_LEFT);
+  if (isMousePressed && !mMousePressed)
+  {
+    mRestartButton->HandleClick(mLastMousePos);
+  }
+  mMousePressed = isMousePressed;
 }
 
 void GamePlayScene::Update(float deltaTime)
@@ -112,9 +146,11 @@ void GamePlayScene::Update(float deltaTime)
     }
     mPaddle->Update(deltaTime);
   }
+
+  mRestartButton->Update(mLastMousePos);
 }
 
-void GamePlayScene::Render()
+void GamePlayScene::Draw()
 {
   mMasterWindow->Draw(mMasterWindow->GetRenderer());
   for (auto &ball : mBalls)
@@ -134,6 +170,7 @@ void GamePlayScene::Render()
       10,
       textColor,
       mMasterWindow->GetRenderer());
+  mRestartButton->Draw(mMasterWindow->GetRenderer(), mPixelifySansRenderer.get());
 
   // RenderPresent
   for (auto &ball : mBalls)
@@ -156,23 +193,23 @@ void GamePlayScene::Shutdown()
 
 void GamePlayScene::CheckCollisions(std::unique_ptr<Ball> &ball)
 {
-  // ボールとパドルの衝突判定
-  Vector2 ballPos = ball->GetWorldPos();
-  Vector2 paddlePos = mPaddle->GetWorldPos();
-
-  if (ballPos.y - BALL_SIZE / 2.0f < paddlePos.y + PADDLE_HEIGHT / 2.0f &&
-      ballPos.y + BALL_SIZE / 2.0f > paddlePos.y - PADDLE_HEIGHT / 2.0f &&
-      paddlePos.x - PADDLE_WIDTH / 2.0f < ballPos.x + BALL_SIZE / 2.0f &&
-      paddlePos.x + PADDLE_WIDTH / 2.0f > ballPos.x - BALL_SIZE / 2.0f)
+  SDL_Rect paddleRect = mPaddle->GetPaddleRect();
+  if (ball->CheckBallCollision(&paddleRect) && !isBallCollision)
   {
-    if (isBallCollision == false)
+    ball->ReverseVelocityX();
+    // mPaddle->StartShake(0.1f, 5.0f);
+    mScore += 100;
+
+    Vector2 currentVel = ball->GetVelocity();
+    float currentSpeed = std::sqrt(currentVel.x * currentVel.x + currentVel.y * currentVel.y);
+    if (currentSpeed < MAX_BALL_SPEED)
     {
-      ball->ReverseVelocityX();
-      mScore++;
+      ball->SetVelocity(currentVel * 1.02f);
     }
+
     isBallCollision = true;
   }
-  else
+  else if (!ball->CheckBallCollision(&paddleRect))
   {
     isBallCollision = false;
   }

@@ -13,10 +13,15 @@ public:
   void SetVelocity(const Vector2 &velocity) { mVelocity = velocity; }
   int GetBallSize() { return mBallSize; }
   void SetBallPos(const Vector2 &pos) { mWorldPos = pos; }
+  void SetBallSpeed(float speed) { mBallSpeed = speed; }
+  float GetBallSpeed() { return mBallSpeed; }
+  SDL_Rect GetBallRect() const;
+  bool CheckBallCollision(SDL_Rect *other) const;
 
 private:
   float mBallSize;
   int mOffSetY;
+  float mBallSpeed;
 
   void ClampWindowPosition();
   void ClampBallPosition();

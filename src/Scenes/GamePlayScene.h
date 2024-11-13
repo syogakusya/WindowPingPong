@@ -9,6 +9,7 @@
 #include "../GameObjects/Paddle.h"
 #include "../GameObjects/MasterWindow.h"
 #include "../Utils/TextRenderer.h"
+#include "../UI/Button.h"
 
 class GamePlayScene : public Scene
 {
@@ -17,7 +18,7 @@ public:
   void Initialize() override;
   void HandleInput(const Uint8 *keyBoardState) override;
   void Update(float deltaTime) override;
-  void Render() override;
+  void Draw() override;
   void Shutdown() override;
 
 private:
@@ -45,4 +46,8 @@ private:
   };
 
   GameState mCurrentState;
+
+  std::unique_ptr<Button> mRestartButton;
+  Vector2 mLastMousePos;
+  bool mMousePressed;
 };

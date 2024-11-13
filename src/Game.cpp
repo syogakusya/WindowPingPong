@@ -78,7 +78,7 @@ void Game::UpdateGame()
 
 void Game::GenerateOutput()
 {
-  mSceneManager.Render();
+  mSceneManager.Draw();
 }
 
 void Game::Shutdown()

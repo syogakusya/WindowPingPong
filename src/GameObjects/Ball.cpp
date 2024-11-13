@@ -23,11 +23,10 @@ void Ball::Draw(SDL_Renderer *renderer)
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
   SDL_RenderClear(renderer);
   SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-  SDL_Rect ball{
-      static_cast<int>(mLocalPos.x - mBallSize / 2.0f),
-      static_cast<int>(mLocalPos.y - mBallSize / 2.0f),
-      static_cast<int>(mBallSize),
-      static_cast<int>(mBallSize)};
+  SDL_Rect ball = {static_cast<int>(mLocalPos.x - mBallSize / 2.0f),
+                   static_cast<int>(mLocalPos.y - mBallSize / 2.0f),
+                   static_cast<int>(mBallSize),
+                   static_cast<int>(mBallSize)};
   SDL_RenderFillRect(renderer, &ball);
 }
 
@@ -81,4 +80,17 @@ void Ball::ClampBallPosition()
     mWorldPos.y = mBallSize / 2.0f + mOffSetY;
     mVelocity.y *= -1.0f;
   }
+}
+
+SDL_Rect Ball::GetBallRect() const
+{
+  return {static_cast<int>(mWorldPos.x - mBallSize / 2.0f),
+          static_cast<int>(mWorldPos.y - mBallSize / 2.0f),
+          static_cast<int>(mBallSize),
+          static_cast<int>(mBallSize)};
+}
+bool Ball::CheckBallCollision(SDL_Rect *other) const
+{
+  SDL_Rect ballRect = GetBallRect();
+  return SDL_HasIntersection(&ballRect, other);
 }

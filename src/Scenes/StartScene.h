@@ -15,7 +15,7 @@ public:
   void Initialize() override;
   void HandleInput(const Uint8 *keyState) override;
   void Update(float deltaTime) override;
-  void Render() override;
+  void Draw() override;
   void Shutdown() override;
 
 private:

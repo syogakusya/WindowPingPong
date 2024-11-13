@@ -45,11 +45,10 @@ void Paddle::Draw(SDL_Renderer *renderer)
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_Rect paddle{
-        static_cast<int>(mLocalPos.x - mPaddleWidth / 2.0f),
-        static_cast<int>(mLocalPos.y - mPaddleHeight / 2.0f),
-        static_cast<int>(mPaddleWidth),
-        static_cast<int>(mPaddleHeight)};
+    SDL_Rect paddle = {static_cast<int>(mLocalPos.x - mPaddleWidth / 2.0f),
+                       static_cast<int>(mLocalPos.y - mPaddleHeight / 2.0f),
+                       static_cast<int>(mPaddleWidth),
+                       static_cast<int>(mPaddleHeight)};
     SDL_RenderFillRect(renderer, &paddle);
 }
 
@@ -133,4 +132,17 @@ void Paddle::ToggleMouseFollow()
             static_cast<int>(mWindowPos.x + mWindowSize.x / 2.0f),
             static_cast<int>(mWorldPos.y));
     }
+}
+
+SDL_Rect Paddle::GetPaddleRect() const
+{
+    return {static_cast<int>(mWorldPos.x - mPaddleWidth / 2.0f),
+            static_cast<int>(mWorldPos.y - mPaddleHeight / 2.0f),
+            static_cast<int>(mPaddleWidth),
+            static_cast<int>(mPaddleHeight)};
+}
+bool Paddle::CheckPaddleCollision(SDL_Rect *other) const
+{
+    SDL_Rect paddleRect = GetPaddleRect();
+    return SDL_HasIntersection(&paddleRect, other);
 }

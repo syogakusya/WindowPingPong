@@ -19,7 +19,7 @@ public:
   void ChangeScene(std::unique_ptr<Scene> newScene);
   void HandleInput(const Uint8 *keyState);
   void Update(float deltaTime);
-  void Render();
+  void Draw();
   void Shutdown();
 
 private:

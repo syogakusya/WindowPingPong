@@ -120,3 +120,8 @@ ifeq ($(shell uname),Darwin)
 else
 	@./build/WindowPingPong.exe
 endif
+
+ifeq ($(shell uname),Darwin)
+debug:
+	@./WindowPingPong.app/Contents/MacOS/WindowPingPong 2>&1
+endif
