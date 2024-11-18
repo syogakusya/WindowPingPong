@@ -13,6 +13,7 @@ public:
   void ToggleMouseFollow();
   SDL_Rect GetPaddleRect() const;
   bool CheckPaddleCollision(SDL_Rect *other) const;
+  bool IsFollowingMouse() const { return mIsFollowingMouse; }
 
 private:
   float mDirection;

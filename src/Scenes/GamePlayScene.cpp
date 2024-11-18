@@ -1,6 +1,8 @@
 #include "GamePlayScene.h"
 #include <iostream>
 
+using namespace std;
+
 const int MASTER_WINDOW_HEIGHT = 160;
 const int WINDOW_SIZE = 200;
 const int BALL_SIZE = 16;
@@ -9,12 +11,17 @@ const int PADDLE_HEIGHT = 100;
 const float PADDLE_SPEED = 300.0f;
 const int UI_MARGIN = 6;
 const float MAX_BALL_SPEED = 500.0f;
+const float OBSTACLE_SPAWN_INTERVAL = 15.0f; // 障害物生成間隔
 
 GamePlayScene::GamePlayScene()
     : mPrevSpaceKeyState(false),
       mScore(0),
       isBallCollision(false),
-      mCurrentState(GameState::Start)
+      mCurrentState(GameState::Start),
+      mObstacleSpawnTimer(OBSTACLE_SPAWN_INTERVAL),
+      prevBallReverseX(false),
+      prevBallReverseY(false),
+      isPaddleObstacleCollision(false)
 {
 }
 
@@ -34,6 +41,8 @@ void GamePlayScene::Initialize()
     SDL_Log("ディスプレイモードの取得に失敗しました: %s", SDL_GetError());
     exit(1);
   }
+
+  std::cout << mScreen->x << " " << mScreen->y << std::endl;
 
   mMasterWindow =
       std::unique_ptr<MasterWindow>(
@@ -81,6 +90,8 @@ void GamePlayScene::Initialize()
       ball->SetVelocity(Vector2(-120.0f, 135.0f));
       ball->SetWorldPos(Vector2(mScreen->x / 2, mScreen->y / 2));
       } });
+
+  // std::cout << mMasterWindow->GetOffSetY() << std::endl;
 }
 
 void GamePlayScene::HandleInput(const Uint8 *keyBoardState)
@@ -106,6 +117,18 @@ void GamePlayScene::HandleInput(const Uint8 *keyBoardState)
       mPaddle->ToggleMouseFollow();
     }
     prevCKeyState = currentCKeyState;
+
+    // マウスのワールド座標
+    int mouseX, mouseY;
+    Uint32 mouseState = SDL_GetGlobalMouseState(&mouseX, &mouseY);
+    mWorldMousePos = Vector2(static_cast<float>(mouseX), static_cast<float>(mouseY));
+
+    bool isMousePressed = mouseState & SDL_BUTTON(SDL_BUTTON_LEFT);
+    if (isMousePressed && !mMousePressed)
+    {
+      mRestartButton->HandleClick(mWorldMousePos);
+    }
+    mMousePressed = isMousePressed;
   }
 
   bool spaceDown = keyBoardState[SDL_SCANCODE_SPACE];
@@ -121,18 +144,6 @@ void GamePlayScene::HandleInput(const Uint8 *keyBoardState)
     }
   }
   mPrevSpaceKeyState = spaceDown;
-
-  // マウス
-  int mouseX, mouseY;
-  Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
-  mLastMousePos = Vector2(static_cast<float>(mouseX), static_cast<float>(mouseY));
-
-  bool isMousePressed = mouseState & SDL_BUTTON(SDL_BUTTON_LEFT);
-  if (isMousePressed && !mMousePressed)
-  {
-    mRestartButton->HandleClick(mLastMousePos);
-  }
-  mMousePressed = isMousePressed;
 }
 
 void GamePlayScene::Update(float deltaTime)
@@ -142,12 +153,74 @@ void GamePlayScene::Update(float deltaTime)
     for (auto &ball : mBalls)
     {
       ball->Update(deltaTime);
-      CheckCollisions(ball);
+      CheckBallCollisions(ball);
     }
     mPaddle->Update(deltaTime);
+
+    UpdateObstacles(deltaTime);
   }
 
-  mRestartButton->Update(mLastMousePos);
+  mRestartButton->Update(mLocalMousePos);
+
+  // パドルがマウスに追従するモード時の衝突判定
+  if (mPaddle->IsFollowingMouse())
+  {
+    SDL_Rect paddleRect = mPaddle->GetWindowRect();
+    bool isCollision = false;
+    for (const auto &obstacle : mObstacles)
+    {
+      SDL_Rect obstacleRect = obstacle->GetWindowRect();
+      SDL_Point mousePos = {static_cast<int>(mLocalMousePos.x), static_cast<int>(mLocalMousePos.y)};
+      if (obstacle->GetType() == ObstacleWindow::Type::Popup &&
+          (SDL_HasIntersection(&paddleRect, &obstacleRect) ||
+           SDL_PointInRect(&mousePos, &obstacleRect)))
+      {
+        isCollision = true;
+        if (!isPaddleObstacleCollision)
+        {
+          isPaddleObstacleCollision = true;
+          mLastWorldMousePos = mWorldMousePos;
+        }
+
+        // 現在のマウス位置と前回の安全な位置との間で補間を行う
+        Vector2 direction = mWorldMousePos - mLastWorldMousePos;
+        direction.Normalize();
+
+        // 障害物の境界からの距離を確保
+        const float SAFE_DISTANCE = 10.0f; // 安全マージン
+
+        Vector2 safePos = mLastWorldMousePos;
+        SDL_Rect testRect = paddleRect;
+
+        // 最大試行回数を設定
+        const int MAX_ATTEMPTS = 10;
+        int attempts = 0;
+
+        // 障害物との衝突がなくなるまで位置を調整（ただし最大試行回数まで）
+        while (SDL_HasIntersection(&testRect, &obstacleRect) && attempts < MAX_ATTEMPTS)
+        {
+          safePos = safePos - direction * SAFE_DISTANCE;
+          testRect.x = static_cast<int>(safePos.x - mPaddle->GetWindowSize().x / 2);
+          testRect.y = static_cast<int>(safePos.y - mPaddle->GetWindowSize().y / 2);
+          attempts++;
+        }
+
+        // 最大試行回数に達した場合は、最後の安全な位置に強制的に戻す
+        if (attempts >= MAX_ATTEMPTS)
+        {
+          safePos = mLastWorldMousePos;
+        }
+
+        mPaddle->SetWindowPos(safePos - mPaddle->GetWindowSize() / 2.0f);
+        mPaddle->SetWorldPos(safePos);
+        break;
+      }
+    }
+    if (!isCollision)
+    {
+      isPaddleObstacleCollision = false;
+    }
+  }
 }
 
 void GamePlayScene::Draw()
@@ -172,7 +245,7 @@ void GamePlayScene::Draw()
       mMasterWindow->GetRenderer());
   mRestartButton->Draw(mMasterWindow->GetRenderer(), mPixelifySansRenderer.get());
 
-  // RenderPresent
+  // すべてのRenderPresentを呼び出す
   for (auto &ball : mBalls)
   {
     ball->RenderPresent(ball->GetRenderer());
@@ -191,7 +264,7 @@ void GamePlayScene::Shutdown()
   mScreen.reset();
 }
 
-void GamePlayScene::CheckCollisions(std::unique_ptr<Ball> &ball)
+void GamePlayScene::CheckBallCollisions(std::unique_ptr<Ball> &ball)
 {
   SDL_Rect paddleRect = mPaddle->GetPaddleRect();
   if (ball->CheckBallCollision(&paddleRect) && !isBallCollision)
@@ -213,6 +286,53 @@ void GamePlayScene::CheckCollisions(std::unique_ptr<Ball> &ball)
   {
     isBallCollision = false;
   }
+
+  // 障害物との衝突判定
+  for (const auto &obstacle : mObstacles)
+  {
+    SDL_Rect ballRect = ball->GetBallRect();
+    if (obstacle->CheckWindowCollision(&ballRect))
+    {
+      Vector2 ballPos = ball->GetWorldPos();
+      Vector2 obstaclePos = obstacle->GetWindowPos();
+      Vector2 obstacleSize = obstacle->GetWindowSize();
+
+      // 上下の衝突判定
+      if (ballPos.y < obstaclePos.y + ball->GetBallSize() / 2.0f ||
+          ballPos.y > obstaclePos.y + obstacleSize.y - ball->GetBallSize() / 2.0f)
+      {
+        if (!prevBallReverseY)
+        {
+          ball->ReverseVelocityY();
+          prevBallReverseY = true;
+        }
+      }
+      else
+      {
+        prevBallReverseY = false;
+      }
+
+      // 左右の衝突判定
+      if (ballPos.x < obstaclePos.x + ball->GetBallSize() / 2.0f ||
+          ballPos.x > obstaclePos.x + obstacleSize.x - ball->GetBallSize() / 2.0f)
+      {
+        if (!prevBallReverseX)
+        {
+          ball->ReverseVelocityX();
+          prevBallReverseX = true;
+        }
+      }
+      else
+      {
+        prevBallReverseX = false;
+      }
+    }
+    else
+    {
+      prevBallReverseX = false;
+      prevBallReverseY = false;
+    }
+  }
 }
 
 void GamePlayScene::AddBall(Vector2 pos, Vector2 velocity)
@@ -221,4 +341,127 @@ void GamePlayScene::AddBall(Vector2 pos, Vector2 velocity)
       new Ball(pos, Vector2(WINDOW_SIZE, WINDOW_SIZE), BALL_SIZE, mMasterWindow->GetOffSetY()));
   mBall->SetVelocity(velocity);
   mBalls.push_back(std::move(mBall));
+}
+
+void GamePlayScene::SpawnObstacle()
+{
+  // ランダムな位置を生成（ただしパドルとボールの位置を避ける）
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<float> xDist(100, mScreen->x - 100);
+  std::uniform_real_distribution<float> yDist(mMasterWindow->GetOffSetY() + 100, mScreen->y - 100);
+  std::uniform_int_distribution<int> typeDist(0, 1);
+
+  Vector2 pos;
+  bool validPosition = false;
+  while (!validPosition)
+  {
+    pos = Vector2(xDist(gen), yDist(gen));
+    validPosition = !CheckObstacleCollision(pos);
+  }
+
+  ObstacleWindow::Type type = typeDist(gen) == 0 ? ObstacleWindow::Type::Transparent : ObstacleWindow::Type::Popup;
+
+  float duration = type == ObstacleWindow::Type::Transparent ? 10.0f : 0.0f;
+  int closeCount = type == ObstacleWindow::Type::Popup ? std::uniform_int_distribution<int>(1, 3)(gen) : 1;
+
+  mObstacles.push_back(std::make_unique<ObstacleWindow>(
+      type == ObstacleWindow::Type::Transparent ? "Obstacle" : "Advertisement",
+      pos,
+      Vector2(200, 200),
+      type,
+      duration,
+      closeCount));
+}
+
+void GamePlayScene::UpdateObstacles(float deltaTime)
+{
+  mObstacleSpawnTimer -= deltaTime;
+  if (mObstacleSpawnTimer <= 0.0f)
+  {
+    SpawnObstacle();
+    mObstacleSpawnTimer = OBSTACLE_SPAWN_INTERVAL;
+  }
+
+  // 妨害ウィンドウの更新と期限切れの削除
+  auto it = mObstacles.begin();
+  while (it != mObstacles.end())
+  {
+    if (!(*it)->IsActive())
+    {
+      it = mObstacles.erase(it);
+    }
+    else
+    {
+      (*it)->Update(deltaTime);
+      ++it;
+    }
+  }
+}
+
+// 障害物が出現する場所がパドルやボールに重なっているか確かめるためのメソッド
+bool GamePlayScene::CheckObstacleCollision(const Vector2 &pos) const
+{
+  SDL_Rect newRect = {
+      static_cast<int>(pos.x),
+      static_cast<int>(pos.y),
+      200, 200};
+
+  // パドルとの衝突チェック
+  SDL_Rect paddleRect = mPaddle->GetPaddleRect();
+  if (SDL_HasIntersection(&newRect, &paddleRect))
+    return true;
+
+  // ボールとの衝突チェック
+  for (const auto &ball : mBalls)
+  {
+    SDL_Rect ballRect = ball->GetBallRect();
+    if (SDL_HasIntersection(&newRect, &ballRect))
+      return true;
+  }
+
+  return false;
+}
+
+// SDL_Eventのイベントハンドラー
+void GamePlayScene::HandleEvent(const SDL_Event &event)
+{
+
+  switch (event.type)
+  {
+  case SDL_MOUSEMOTION:
+    mLocalMousePos = Vector2(static_cast<float>(event.motion.x),
+                             static_cast<float>(event.motion.y));
+    break;
+
+  case SDL_MOUSEBUTTONDOWN:
+    if (event.button.button == SDL_BUTTON_LEFT)
+    {
+      mMousePressed = true;
+      mRestartButton->HandleClick(mLocalMousePos);
+    }
+    break;
+
+  case SDL_MOUSEBUTTONUP:
+    if (event.button.button == SDL_BUTTON_LEFT)
+    {
+      mMousePressed = false;
+    }
+    break;
+
+  case SDL_WINDOWEVENT:
+    if (event.window.event == SDL_WINDOWEVENT_CLOSE)
+    {
+      for (auto &obstacle : mObstacles)
+      {
+        if (obstacle->GetType() == ObstacleWindow::Type::Popup &&
+            SDL_GetWindowID(obstacle->GetWindow()) == event.window.windowID)
+        {
+          obstacle->HandleClick();
+          break;
+        }
+      }
+    }
+    break;
+  }
 }

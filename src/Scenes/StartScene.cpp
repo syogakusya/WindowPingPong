@@ -67,6 +67,10 @@ void StartScene::HandleInput(const Uint8 *keyState)
   }
 }
 
+void StartScene::HandleEvent(const SDL_Event &event)
+{
+}
+
 void StartScene::Update(float deltaTime)
 {
   mMasterWindow->Update(deltaTime);

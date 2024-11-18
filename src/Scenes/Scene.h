@@ -10,4 +10,5 @@ public:
   virtual void Update(float deltaTime) = 0;
   virtual void Draw() = 0;
   virtual void Shutdown() = 0;
+  virtual void HandleEvent(const SDL_Event &event) = 0;
 };

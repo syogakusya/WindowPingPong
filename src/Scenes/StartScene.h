@@ -14,6 +14,7 @@ public:
   StartScene();
   void Initialize() override;
   void HandleInput(const Uint8 *keyState) override;
+  void HandleEvent(const SDL_Event &event) override;
   void Update(float deltaTime) override;
   void Draw() override;
   void Shutdown() override;

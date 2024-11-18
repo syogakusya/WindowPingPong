@@ -115,11 +115,8 @@ void Paddle::UpdateMouseFollow()
 {
     int mouseX, mouseY;
     SDL_GetGlobalMouseState(&mouseX, &mouseY);
-
-    mWindowPos.x = mouseX - mWindowSize.x / 2.0f;
-    mWindowPos.y = mouseY - mWindowSize.y / 2.0f;
-    mWorldPos.x = mouseX;
-    mWorldPos.y = mouseY;
+    SetWorldPos(Vector2(static_cast<float>(mouseX), static_cast<float>(mouseY)));
+    SetWindowPos(mWorldPos - mWindowSize / 2.0f);
 }
 
 void Paddle::ToggleMouseFollow()

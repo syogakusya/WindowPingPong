@@ -47,11 +47,14 @@ void Game::ProcessInput()
     case SDL_QUIT:
       mIsRunning = false;
       break;
+    default:
+      mSceneManager.HandleEvent(event);
+      break;
     }
   }
 
+  // キーボード状態の取得
   mKeyboardState = SDL_GetKeyboardState(NULL);
-
   if (mKeyboardState[SDL_SCANCODE_ESCAPE])
   {
     mIsRunning = false;

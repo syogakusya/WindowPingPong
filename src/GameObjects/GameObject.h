@@ -32,6 +32,11 @@ public:
     mWorldPos = pos;
     UpdateWindowPosition();
   }
+  void SetWindowPos(Vector2 pos)
+  {
+    mWindowPos = pos;
+    UpdateLocalPos();
+  }
   void SetLocalPos(Vector2 pos) { mLocalPos = pos; }
   void SetVelocity(Vector2 vel) { mVelocity = vel; }
 

@@ -10,6 +10,7 @@
 #include "../GameObjects/MasterWindow.h"
 #include "../Utils/TextRenderer.h"
 #include "../UI/Button.h"
+#include "../GameObjects/ObstacleWindow.h"
 
 class GamePlayScene : public Scene
 {
@@ -20,9 +21,10 @@ public:
   void Update(float deltaTime) override;
   void Draw() override;
   void Shutdown() override;
+  void HandleEvent(const SDL_Event &event) override;
 
 private:
-  void CheckCollisions(std::unique_ptr<Ball> &ball);
+  void CheckBallCollisions(std::unique_ptr<Ball> &ball);
   void AddBall(Vector2 pos, Vector2 velocity);
 
   std::unique_ptr<MasterWindow> mMasterWindow;
@@ -35,6 +37,9 @@ private:
   bool mPrevSpaceKeyState;
   bool isBallCollision;
   int mScore;
+  bool prevBallReverseX;
+  bool prevBallReverseY;
+  bool isPaddleObstacleCollision;
 
   enum class GameState
   {
@@ -48,6 +53,15 @@ private:
   GameState mCurrentState;
 
   std::unique_ptr<Button> mRestartButton;
-  Vector2 mLastMousePos;
+  Vector2 mLocalMousePos;
+  Vector2 mWorldMousePos;
+  Vector2 mLastWorldMousePos;
   bool mMousePressed;
+
+  std::vector<std::unique_ptr<ObstacleWindow>> mObstacles;
+  float mObstacleSpawnTimer;
+
+  void SpawnObstacle();
+  void UpdateObstacles(float deltaTime);
+  bool CheckObstacleCollision(const Vector2 &pos) const;
 };

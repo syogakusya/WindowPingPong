@@ -18,6 +18,7 @@ public:
 
   void ChangeScene(std::unique_ptr<Scene> newScene);
   void HandleInput(const Uint8 *keyState);
+  void HandleEvent(const SDL_Event &event);
   void Update(float deltaTime);
   void Draw();
   void Shutdown();

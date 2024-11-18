@@ -7,8 +7,16 @@ public:
   Ball(Vector2 pos, Vector2 size, int ballSize, int offSetY);
   void Update(float deltaTime) override;
   void Draw(SDL_Renderer *renderer) override;
-  void ReverseVelocityX() { mVelocity.x *= -1.0f; }
-  void ReverseVelocityY() { mVelocity.y *= -1.0f; }
+  void ReverseVelocityX()
+  {
+    mVelocity.x *= -1.0f;
+    mWorldPos.x -= mLastMoveDistance.x;
+  }
+  void ReverseVelocityY()
+  {
+    mVelocity.y *= -1.0f;
+    mWorldPos.y -= mLastMoveDistance.y;
+  }
   const Vector2 &GetVelocity() const { return mVelocity; }
   void SetVelocity(const Vector2 &velocity) { mVelocity = velocity; }
   int GetBallSize() { return mBallSize; }
@@ -22,6 +30,7 @@ private:
   float mBallSize;
   int mOffSetY;
   float mBallSpeed;
+  Vector2 mLastMoveDistance;
 
   void ClampWindowPosition();
   void ClampBallPosition();

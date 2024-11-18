@@ -2,13 +2,14 @@
 
 Ball::Ball(Vector2 pos, Vector2 size, int ballSize, int offSetY)
     : GameObject("Ball", pos, size, SDL_WINDOW_ALWAYS_ON_TOP),
-      mBallSize(ballSize), mOffSetY(offSetY)
+      mBallSize(ballSize), mOffSetY(offSetY), mLastMoveDistance(0.0f, 0.0f)
 {
   mVelocity = Vector2(200.0f, 235.0f);
 }
 
 void Ball::Update(float deltaTime)
 {
+  // mLastMoveDistance = mVelocity * deltaTime;
   mWorldPos.x += mVelocity.x * deltaTime;
   mWorldPos.y += mVelocity.y * deltaTime;
   mWindowPos.x = mWorldPos.x - mWindowSize.x / 2.0f;
