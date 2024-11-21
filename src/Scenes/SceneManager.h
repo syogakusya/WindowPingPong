@@ -5,11 +5,7 @@
 class SceneManager
 {
 public:
-  static SceneManager &GetInstance()
-  {
-    static SceneManager instance;
-    return instance;
-  }
+  static SceneManager &GetInstance();
 
   SceneManager() = default;
   ~SceneManager() = default;

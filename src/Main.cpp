@@ -1,13 +1,17 @@
 #include "Game.h"
 
-int main(int argv, char **argc)
+Game* gGameInstance = nullptr;
+
+int main(int argc, char* argv[])
 {
-  Game game;
-  bool success = game.Initialize();
-  if (success)
-  {
-    game.RunLoop();
-  }
-  game.Shutdown();
-  return 0;
+    gGameInstance = new Game();
+
+    if (gGameInstance->Initialize())
+    {
+        gGameInstance->RunLoop();
+    }
+
+    gGameInstance->Shutdown();
+    delete gGameInstance;
+    return 0;
 }

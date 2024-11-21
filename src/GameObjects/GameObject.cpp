@@ -148,3 +148,11 @@ SDL_Rect GameObject::GetWindowRect() const
   rect.h = static_cast<int>(mWindowSize.y);
   return rect;
 }
+
+void GameObject::DrawRect(SDL_Renderer *renderer, SDL_Rect rect)
+{
+  SDL_Rect localRect = rect;
+  localRect.x = static_cast<int>(localRect.x - mWindowPos.x);
+  localRect.y = static_cast<int>(localRect.y - mWindowPos.y);
+  SDL_RenderFillRect(renderer, &localRect);
+}

@@ -1,5 +1,4 @@
 #include "GamePlayScene.h"
-#include <iostream>
 
 using namespace std;
 
@@ -13,15 +12,17 @@ const int UI_MARGIN = 6;
 const float MAX_BALL_SPEED = 500.0f;
 const float OBSTACLE_SPAWN_INTERVAL = 15.0f; // 障害物生成間隔
 
+extern Game *gGameInstance;
+
 GamePlayScene::GamePlayScene()
-    : mPrevSpaceKeyState(false),
+    : isBallCollision(false),
       mScore(0),
-      isBallCollision(false),
-      mCurrentState(GameState::Start),
       mObstacleSpawnTimer(OBSTACLE_SPAWN_INTERVAL),
       prevBallReverseX(false),
       prevBallReverseY(false),
-      isPaddleObstacleCollision(false)
+      isPaddleObstacleCollision(false),
+      mHighScoreManager("highscore.txt"),
+      mIsGameOver(false)
 {
 }
 
@@ -52,14 +53,23 @@ void GamePlayScene::Initialize()
               Vector2(mScreen->x, MASTER_WINDOW_HEIGHT),
               UI_MARGIN,
               SDL_WINDOW_ALWAYS_ON_TOP | SDL_WINDOW_BORDERLESS));
-  mBall = std::unique_ptr<Ball>(
+  auto initialBall = std::unique_ptr<Ball>(
       new Ball(
           Vector2(mScreen->x / 2, mScreen->y / 2),
           Vector2(WINDOW_SIZE, WINDOW_SIZE),
           BALL_SIZE,
           mMasterWindow->GetOffSetY()));
-  mBall->SetVelocity(Vector2(-120.0f, 135.0f));
-  mBalls.push_back(std::move(mBall));
+  initialBall->SetVelocity(Vector2(-120.0f, 135.0f));
+
+  if (initialBall)
+  {
+    mBalls.push_back(std::move(initialBall));
+  }
+  else
+  {
+    throw std::runtime_error("Failed to create initial ball");
+  }
+
   mPaddle = std::unique_ptr<Paddle>(
       new Paddle(
           Vector2(mScreen->x / 4, mScreen->y / 2),
@@ -75,8 +85,8 @@ void GamePlayScene::Initialize()
   SDL_Color hoverColor = {150, 150, 150, 255};
   mRestartButton = std::make_unique<Button>(
       "Restart",
-      Vector2(mScreen->x / 2 - 50, 10),
-      Vector2(100, 40),
+      Vector2(mScreen->x / 2 - 500, 80),
+      Vector2(200, 40),
       normalColor,
       hoverColor);
 
@@ -91,15 +101,35 @@ void GamePlayScene::Initialize()
       ball->SetWorldPos(Vector2(mScreen->x / 2, mScreen->y / 2));
       } });
 
+  normalColor = {100, 100, 100, 255};
+  hoverColor = {150, 150, 150, 255};
+  mReturnToStartButton = std::make_unique<Button>(
+      "Return to Title",
+      Vector2(mScreen->x / 2 + 280, 80),
+      Vector2(200, 40),
+      normalColor,
+      hoverColor);
+
+  mReturnToStartButton->SetOnClick([]()
+                                   {
+      // スタートシーンに戻る処理
+      auto startScene = std::make_unique<StartScene>();
+      SceneManager::GetInstance().ChangeScene(std::move(startScene)); });
+
   // std::cout << mMasterWindow->GetOffSetY() << std::endl;
 }
 
 void GamePlayScene::HandleInput(const Uint8 *keyBoardState)
 {
-  // キーボード
-  float paddleDir = 0.0f;
+  // マウスのワールド座標
+  int mouseX, mouseY;
+  Uint32 mouseState = SDL_GetGlobalMouseState(&mouseX, &mouseY);
+  mWorldMousePos = Vector2(static_cast<float>(mouseX), static_cast<float>(mouseY));
+
   if (mCurrentState == GameState::Playing)
   {
+    // キーボード
+    float paddleDir = 0.0f;
     if (keyBoardState[SDL_SCANCODE_UP] || keyBoardState[SDL_SCANCODE_W])
     {
       paddleDir = -1.0f;
@@ -117,18 +147,21 @@ void GamePlayScene::HandleInput(const Uint8 *keyBoardState)
       mPaddle->ToggleMouseFollow();
     }
     prevCKeyState = currentCKeyState;
-
-    // マウスのワールド座標
-    int mouseX, mouseY;
-    Uint32 mouseState = SDL_GetGlobalMouseState(&mouseX, &mouseY);
-    mWorldMousePos = Vector2(static_cast<float>(mouseX), static_cast<float>(mouseY));
-
-    bool isMousePressed = mouseState & SDL_BUTTON(SDL_BUTTON_LEFT);
-    if (isMousePressed && !mMousePressed)
+  }
+  else if (mCurrentState == GameState::GameOver)
+  {
+    // ゲームオーバー時の入力処理
+    if (keyBoardState[SDL_SCANCODE_SPACE])
     {
-      mRestartButton->HandleClick(mWorldMousePos);
+      // リスタート処理
+      mRestartButton->HandleClick(Vector2(mScreen->x / 2 - 50 + 0, mScreen->y / 2 + 100));
     }
-    mMousePressed = isMousePressed;
+
+    // ESCキーでスタートシーンに戻る
+    if (keyBoardState[SDL_SCANCODE_ESCAPE])
+    {
+      mReturnToStartButton->HandleClick(Vector2(mScreen->x / 2 + 20 + 0, mScreen->y / 2 + 100));
+    }
   }
 
   bool spaceDown = keyBoardState[SDL_SCANCODE_SPACE];
@@ -150,90 +183,140 @@ void GamePlayScene::Update(float deltaTime)
 {
   if (mCurrentState == GameState::Playing)
   {
-    for (auto &ball : mBalls)
+    // ボールの更新と画面外判定
+    for (auto it = mBalls.begin(); it != mBalls.end();)
     {
-      ball->Update(deltaTime);
-      CheckBallCollisions(ball);
-    }
-    mPaddle->Update(deltaTime);
+      (*it)->Update(deltaTime);
 
-    UpdateObstacles(deltaTime);
-  }
-
-  mRestartButton->Update(mLocalMousePos);
-
-  // パドルがマウスに追従するモード時の衝突判定
-  if (mPaddle->IsFollowingMouse())
-  {
-    SDL_Rect paddleRect = mPaddle->GetWindowRect();
-    bool isCollision = false;
-    for (const auto &obstacle : mObstacles)
-    {
-      SDL_Rect obstacleRect = obstacle->GetWindowRect();
-      SDL_Point mousePos = {static_cast<int>(mLocalMousePos.x), static_cast<int>(mLocalMousePos.y)};
-      if (obstacle->GetType() == ObstacleWindow::Type::Popup &&
-          (SDL_HasIntersection(&paddleRect, &obstacleRect) ||
-           SDL_PointInRect(&mousePos, &obstacleRect)))
+      // 左右の画面外判定
+      Vector2 ballPos = (*it)->GetWorldPos();
+      if (ballPos.x < 0 || ballPos.x > mScreen->x)
       {
-        isCollision = true;
-        if (!isPaddleObstacleCollision)
-        {
-          isPaddleObstacleCollision = true;
-          mLastWorldMousePos = mWorldMousePos;
-        }
-
-        // 現在のマウス位置と前回の安全な位置との間で補間を行う
-        Vector2 direction = mWorldMousePos - mLastWorldMousePos;
-        direction.Normalize();
-
-        // 障害物の境界からの距離を確保
-        const float SAFE_DISTANCE = 10.0f; // 安全マージン
-
-        Vector2 safePos = mLastWorldMousePos;
-        SDL_Rect testRect = paddleRect;
-
-        // 最大試行回数を設定
-        const int MAX_ATTEMPTS = 10;
-        int attempts = 0;
-
-        // 障害物との衝突がなくなるまで位置を調整（ただし最大試行回数まで）
-        while (SDL_HasIntersection(&testRect, &obstacleRect) && attempts < MAX_ATTEMPTS)
-        {
-          safePos = safePos - direction * SAFE_DISTANCE;
-          testRect.x = static_cast<int>(safePos.x - mPaddle->GetWindowSize().x / 2);
-          testRect.y = static_cast<int>(safePos.y - mPaddle->GetWindowSize().y / 2);
-          attempts++;
-        }
-
-        // 最大試行回数に達した場合は、最後の安全な位置に強制的に戻す
-        if (attempts >= MAX_ATTEMPTS)
-        {
-          safePos = mLastWorldMousePos;
-        }
-
-        mPaddle->SetWindowPos(safePos - mPaddle->GetWindowSize() / 2.0f);
-        mPaddle->SetWorldPos(safePos);
-        break;
+        it = mBalls.erase(it);
+      }
+      else
+      {
+        ++it;
       }
     }
-    if (!isCollision)
+    // ボールがなくなったらGameOver
+    if (mBalls.empty())
     {
-      isPaddleObstacleCollision = false;
+      mCurrentState = GameState::GameOver;
+      std::cout << "GameOver" << std::endl;
+      mHighScoreManager.UpdateHighScore(mScore);
+      mIsGameOver = true;
     }
+
+    mPaddle->Update(deltaTime);
+    UpdateObstacles(deltaTime);
+
+    // パドルがマウスに追従するモード時の衝突判定
+    if (mPaddle->IsFollowingMouse())
+    {
+      SDL_Rect paddleRect = mPaddle->GetWindowRect();
+      bool isCollision = false;
+      for (const auto &obstacle : mObstacles)
+      {
+        SDL_Rect obstacleRect = obstacle->GetWindowRect();
+        SDL_Point mousePos = {static_cast<int>(mLocalMousePos.x), static_cast<int>(mLocalMousePos.y)};
+        if (obstacle->GetType() == ObstacleWindow::Type::Popup &&
+            (SDL_HasIntersection(&paddleRect, &obstacleRect) ||
+             SDL_PointInRect(&mousePos, &obstacleRect)))
+        {
+          isCollision = true;
+          if (!isPaddleObstacleCollision)
+          {
+            isPaddleObstacleCollision = true;
+            mLastWorldMousePos = mWorldMousePos;
+          }
+
+          // 現在のマウス位置と前回の安全な位置との間で補間を行う
+          Vector2 direction = mWorldMousePos - mLastWorldMousePos;
+          direction.Normalize();
+
+          // 障害物の境界からの距離を確保
+          const float SAFE_DISTANCE = 10.0f; // 安全マージン
+
+          Vector2 safePos = mLastWorldMousePos;
+          SDL_Rect testRect = paddleRect;
+
+          // 最大試行回数を設定
+          const int MAX_ATTEMPTS = 10;
+          int attempts = 0;
+
+          // 障害物との衝突がなくなる位置を調整（ただし最大試行回数まで）
+          while (SDL_HasIntersection(&testRect, &obstacleRect) && attempts < MAX_ATTEMPTS)
+          {
+            safePos = safePos - direction * SAFE_DISTANCE;
+            testRect.x = static_cast<int>(safePos.x - mPaddle->GetWindowSize().x / 2);
+            testRect.y = static_cast<int>(safePos.y - mPaddle->GetWindowSize().y / 2);
+            attempts++;
+          }
+
+          // 最大試行数に達した場合は最後の安全な位置に強制的に戻す
+          if (attempts >= MAX_ATTEMPTS)
+          {
+            safePos = mLastWorldMousePos;
+          }
+
+          mPaddle->SetWindowPos(safePos - mPaddle->GetWindowSize() / 2.0f);
+          mPaddle->SetWorldPos(safePos);
+          break;
+        }
+      }
+      if (!isCollision)
+      {
+        isPaddleObstacleCollision = false;
+      }
+    }
+    for (auto &ball : mBalls)
+    {
+      if (ball)
+      {
+        ball->Update(deltaTime);
+        CheckBallCollisions(ball.get());
+      }
+    }
+  }
+
+  mMasterWindow->Update(deltaTime);
+  if (mCurrentState == GameState::GameOver)
+  {
+    mRestartButton->Update(mLocalMousePos);
+    mReturnToStartButton->Update(mLocalMousePos);
   }
 }
 
 void GamePlayScene::Draw()
 {
   mMasterWindow->Draw(mMasterWindow->GetRenderer());
+
   for (auto &ball : mBalls)
   {
-    ball->Draw(ball->GetRenderer());
+    if (ball)
+      ball->Draw(ball->GetRenderer());
   }
+
   mPaddle->Draw(mPaddle->GetRenderer());
+
+  SDL_Rect paddleRect = mPaddle->GetPaddleRect();
   for (auto &ball : mBalls)
   {
-    mPaddle->DrawBall(mPaddle->GetRenderer(), ball.get());
+    if (ball)
+    {
+      SDL_Rect ballRect = ball->GetBallRect();
+      ball->DrawRect(ball->GetRenderer(), paddleRect);
+      for (auto &ball2 : mBalls)
+      {
+        if (ball2)
+        {
+          SDL_Rect ballRect2 = ball2->GetBallRect();
+          ball->DrawRect(ball->GetRenderer(), ballRect2);
+        }
+      }
+      mPaddle->DrawRect(mPaddle->GetRenderer(), ballRect);
+    }
   }
 
   SDL_Color textColor = {255, 255, 255, 255};
@@ -243,35 +326,81 @@ void GamePlayScene::Draw()
       10,
       textColor,
       mMasterWindow->GetRenderer());
-  mRestartButton->Draw(mMasterWindow->GetRenderer(), mPixelifySansRenderer.get());
+  mPixelifySansRenderer->RenderText(
+      "High Score: " + std::to_string(mHighScoreManager.GetHighScore()),
+      10,
+      40,
+      textColor,
+      mMasterWindow->GetRenderer());
 
-  // すべてのRenderPresentを呼び出す
+  if (mCurrentState == GameState::GameOver)
+  {
+    SDL_Color gameOverColor = {255, 255, 255, 255};
+    mPixelifySansRenderer->SetFontSize(96);
+    mPixelifySansRenderer->RenderText(
+        "GAME OVER",
+        mScreen->x / 2 - 255,
+        10,
+        gameOverColor,
+        mMasterWindow->GetRenderer());
+
+    mPixelifySansRenderer->SetFontSize(24);
+    mPixelifySansRenderer->RenderText(
+        "Space: Restart",
+        mScreen->x / 2 - 490,
+        40,
+        textColor,
+        mMasterWindow->GetRenderer());
+
+    mPixelifySansRenderer->RenderText(
+        "R: Return to Start",
+        mScreen->x / 2 + 270,
+        40,
+        textColor,
+        mMasterWindow->GetRenderer());
+
+    mRestartButton->Draw(mMasterWindow->GetRenderer(), mPixelifySansRenderer.get());
+    mReturnToStartButton->Draw(mMasterWindow->GetRenderer(), mPixelifySansRenderer.get());
+  }
+
+  mMasterWindow->RenderPresent(mMasterWindow->GetRenderer());
   for (auto &ball : mBalls)
   {
-    ball->RenderPresent(ball->GetRenderer());
+    if (ball)
+    {
+      ball->RenderPresent(ball->GetRenderer());
+    }
   }
   mPaddle->RenderPresent(mPaddle->GetRenderer());
-  mMasterWindow->RenderPresent(mMasterWindow->GetRenderer());
 }
 
 void GamePlayScene::Shutdown()
 {
   mBalls.clear();
-  mBall.reset();
   mPaddle.reset();
   mMasterWindow.reset();
   mPixelifySansRenderer.reset();
   mScreen.reset();
 }
 
-void GamePlayScene::CheckBallCollisions(std::unique_ptr<Ball> &ball)
+void GamePlayScene::CheckBallCollisions(Ball *ball)
 {
+  if (!ball)
+  {
+    std::cerr << "Error: CheckBallCollisions called with null ball." << std::endl;
+    return;
+  }
+
   SDL_Rect paddleRect = mPaddle->GetPaddleRect();
   if (ball->CheckBallCollision(&paddleRect) && !isBallCollision)
   {
     ball->ReverseVelocityX();
-    // mPaddle->StartShake(0.1f, 5.0f);
     mScore += 100;
+
+    if (gGameInstance && gGameInstance->GetSoundEffect())
+    {
+      Mix_PlayChannel(-1, gGameInstance->GetSoundEffect(), 0);
+    }
 
     Vector2 currentVel = ball->GetVelocity();
     float currentSpeed = std::sqrt(currentVel.x * currentVel.x + currentVel.y * currentVel.y);
@@ -281,6 +410,11 @@ void GamePlayScene::CheckBallCollisions(std::unique_ptr<Ball> &ball)
     }
 
     isBallCollision = true;
+
+    if (mScore % 1000 == 0 && mScore != 0)
+    {
+      AddBall(Vector2(mScreen->x / 2, mScreen->y / 2), Vector2(-120.0f, 135.0f));
+    }
   }
   else if (!ball->CheckBallCollision(&paddleRect))
   {
@@ -291,7 +425,7 @@ void GamePlayScene::CheckBallCollisions(std::unique_ptr<Ball> &ball)
   for (const auto &obstacle : mObstacles)
   {
     SDL_Rect ballRect = ball->GetBallRect();
-    if (obstacle->CheckWindowCollision(&ballRect))
+    if (obstacle->GetType() != ObstacleWindow::Type::Transparent && obstacle->CheckWindowCollision(&ballRect))
     {
       Vector2 ballPos = ball->GetWorldPos();
       Vector2 obstaclePos = obstacle->GetWindowPos();
@@ -326,6 +460,11 @@ void GamePlayScene::CheckBallCollisions(std::unique_ptr<Ball> &ball)
       {
         prevBallReverseX = false;
       }
+
+      if (gGameInstance && gGameInstance->GetSoundEffect())
+      {
+        Mix_PlayChannel(-1, gGameInstance->GetSoundEffect(), 0);
+      }
     }
     else
     {
@@ -337,10 +476,23 @@ void GamePlayScene::CheckBallCollisions(std::unique_ptr<Ball> &ball)
 
 void GamePlayScene::AddBall(Vector2 pos, Vector2 velocity)
 {
-  mBall = std::unique_ptr<Ball>(
-      new Ball(pos, Vector2(WINDOW_SIZE, WINDOW_SIZE), BALL_SIZE, mMasterWindow->GetOffSetY()));
-  mBall->SetVelocity(velocity);
-  mBalls.push_back(std::move(mBall));
+  try
+  {
+    auto newBall = std::make_unique<Ball>(pos, Vector2(WINDOW_SIZE, WINDOW_SIZE), BALL_SIZE, mMasterWindow->GetOffSetY());
+
+    if (!newBall)
+    {
+      throw std::runtime_error("Failed to create new ball");
+    }
+
+    newBall->SetVelocity(velocity);
+    mBalls.push_back(std::move(newBall));
+    std::cout << "Debug: New ball added. Total balls: " << mBalls.size() << std::endl;
+  }
+  catch (const std::exception &e)
+  {
+    std::cerr << "Error in AddBall: " << e.what() << std::endl;
+  }
 }
 
 void GamePlayScene::SpawnObstacle()
@@ -376,6 +528,7 @@ void GamePlayScene::SpawnObstacle()
 
 void GamePlayScene::UpdateObstacles(float deltaTime)
 {
+
   mObstacleSpawnTimer -= deltaTime;
   if (mObstacleSpawnTimer <= 0.0f)
   {
@@ -408,16 +561,22 @@ bool GamePlayScene::CheckObstacleCollision(const Vector2 &pos) const
       200, 200};
 
   // パドルとの衝突チェック
-  SDL_Rect paddleRect = mPaddle->GetPaddleRect();
-  if (SDL_HasIntersection(&newRect, &paddleRect))
-    return true;
+  if (mPaddle)
+  {
+    SDL_Rect paddleRect = mPaddle->GetPaddleRect();
+    if (SDL_HasIntersection(&newRect, &paddleRect))
+      return true;
+  }
 
   // ボールとの衝突チェック
   for (const auto &ball : mBalls)
   {
-    SDL_Rect ballRect = ball->GetBallRect();
-    if (SDL_HasIntersection(&newRect, &ballRect))
-      return true;
+    if (ball)
+    { // nullチェックを追加
+      SDL_Rect ballRect = ball->GetBallRect();
+      if (SDL_HasIntersection(&newRect, &ballRect))
+        return true;
+    }
   }
 
   return false;
@@ -437,15 +596,14 @@ void GamePlayScene::HandleEvent(const SDL_Event &event)
   case SDL_MOUSEBUTTONDOWN:
     if (event.button.button == SDL_BUTTON_LEFT)
     {
-      mMousePressed = true;
       mRestartButton->HandleClick(mLocalMousePos);
+      mReturnToStartButton->HandleClick(mLocalMousePos);
     }
     break;
 
   case SDL_MOUSEBUTTONUP:
     if (event.button.button == SDL_BUTTON_LEFT)
     {
-      mMousePressed = false;
     }
     break;
 

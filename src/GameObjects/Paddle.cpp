@@ -52,16 +52,6 @@ void Paddle::Draw(SDL_Renderer *renderer)
     SDL_RenderFillRect(renderer, &paddle);
 }
 
-void Paddle::DrawBall(SDL_Renderer *renderer, Ball *ball)
-{
-    SDL_Rect ball_ = {
-        static_cast<int>(ball->GetWorldPos().x - mWindowPos.x - ball->GetBallSize() / 2.0f),
-        static_cast<int>(ball->GetWorldPos().y - mWindowPos.y - ball->GetBallSize() / 2.0f),
-        static_cast<int>(ball->GetBallSize()),
-        static_cast<int>(ball->GetBallSize())};
-    SDL_RenderFillRect(renderer, &ball_);
-}
-
 void Paddle::SetDirection(float direction)
 {
     mDirection = direction;

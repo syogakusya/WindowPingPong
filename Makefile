@@ -18,8 +18,8 @@ else
 		RM = rm -rf
 		EXE = .exe
 		SRCDIR = src
-		SDL_CFLAGS = $$(sdl2-config --cflags) $$(pkg-config --cflags SDL2_ttf)
-		SDL_LIBS = $$(sdl2-config --libs) $$(pkg-config --libs SDL2_ttf)
+		SDL_CFLAGS = $$(sdl2-config --cflags) $$(pkg-config --cflags SDL2_ttf) $$(pkg-config --cflags SDL2_mixer)
+		SDL_LIBS = $$(sdl2-config --libs) $$(pkg-config --libs SDL2_ttf) $$(pkg-config --libs SDL2_mixer)
 endif
 
 # コンパイルオプション
@@ -27,7 +27,7 @@ CXXFLAGS = -std=c++17 -Wall -Wextra -g $(SDL_CFLAGS)
 
 # macOS向けの追加設定
 ifeq ($(shell uname),Darwin)
-	CXXFLAGS += -framework Cocoa -framework Metal -framework MetalKit
+	LDFLAGS += -framework Cocoa -framework Metal -framework MetalKit
 	APP_NAME = $(PROJECT_NAME).app
 	APP_CONTENTS = $(APP_NAME)/Contents
 	APP_MACOS = $(APP_CONTENTS)/MacOS
@@ -124,4 +124,8 @@ endif
 ifeq ($(shell uname),Darwin)
 debug:
 	@./WindowPingPong.app/Contents/MacOS/WindowPingPong 2>&1
+
+lldebug:
+	lldb ./WindowPingPong.app/Contents/MacOS/WindowPingPong
 endif
+

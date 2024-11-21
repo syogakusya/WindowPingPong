@@ -26,6 +26,8 @@ public:
   SDL_Rect GetBallRect() const;
   bool CheckBallCollision(SDL_Rect *other) const;
 
+  bool mIsRLScreenCollision = false;
+
 private:
   float mBallSize;
   int mOffSetY;

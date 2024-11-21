@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include <SDL.h>
 
 struct Vector2
 {
@@ -90,5 +91,13 @@ struct Vector2
   static float Distance(const Vector2 &a, const Vector2 &b)
   {
     return (b - a).Length();
+  }
+
+  SDL_Point ToSDLPoint() const
+  {
+    SDL_Point point;
+    point.x = static_cast<int>(x);
+    point.y = static_cast<int>(y);
+    return point;
   }
 };

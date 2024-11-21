@@ -56,6 +56,7 @@ void StartScene::Initialize()
           20,
           mMasterWindow->GetOffSetY()));
   mBall->SetVelocity(ballVelocity);
+  mBall->mIsRLScreenCollision = true;
 }
 
 void StartScene::HandleInput(const Uint8 *keyState)

@@ -77,3 +77,12 @@ void TextRenderer::SetFontSize(int fontSize)
     SDL_Log("フォントの再読み込みに失敗しました: %s\n", TTF_GetError());
   }
 }
+
+void TextRenderer::GetTextSize(const std::string &text, int &width, int &height) const
+{
+  if (TTF_SizeText(mFont, text.c_str(), &width, &height) != 0)
+  {
+    SDL_Log("TTF_SizeText: %s\n", TTF_GetError());
+    width = height = 0;
+  }
+}

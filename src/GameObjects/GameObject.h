@@ -13,6 +13,7 @@ public:
 
   virtual void Update(float deltaTime) = 0;
   virtual void Draw(SDL_Renderer *renderer) = 0;
+  virtual void DrawRect(SDL_Renderer *renderer, SDL_Rect rect);
   virtual SDL_Rect GetWindowRect() const;
 
   void RenderPresent(SDL_Renderer *renderer);

@@ -3,6 +3,7 @@
 #include <SDL_ttf.h>
 #include "Scenes/SceneManager.h"
 #include "Scenes/StartScene.h"
+#include <SDL_mixer.h>
 
 class Game
 {
@@ -11,6 +12,7 @@ public:
   bool Initialize();
   void RunLoop();
   void Shutdown();
+  Mix_Chunk *GetSoundEffect() const { return mSoundEffect; }
 
 private:
   void ProcessInput();
@@ -19,6 +21,11 @@ private:
 
   bool mIsRunning;
   Uint32 mTicksCount;
-  const Uint8 *mKeyboardState;
   SceneManager &mSceneManager;
+
+  // サウンド管理
+  Mix_Music *mBGM;
+  Mix_Chunk *mSoundEffect;
+
+  void LoadAssets();
 };

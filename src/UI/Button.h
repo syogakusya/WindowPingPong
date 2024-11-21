@@ -9,12 +9,12 @@ class Button
 {
 public:
   Button(const std::string &text, Vector2 position, Vector2 size,
-         SDL_Color normalColor, SDL_Color hoverColor);
+         SDL_Color normalColor, SDL_Color hoverColor, SDL_Color textColor = {255, 255, 255, 255});
 
   void Update(const Vector2 &mousePos);
   void Draw(SDL_Renderer *renderer, TextRenderer *textRenderer);
   void SetOnClick(std::function<void()> callback) { mOnClick = callback; }
-  bool HandleClick(const Vector2 &mousePos);
+  void HandleClick(const Vector2 &mousePos);
 
 private:
   std::string mText;
@@ -22,6 +22,7 @@ private:
   Vector2 mSize;
   SDL_Color mNormalColor;
   SDL_Color mHoverColor;
+  SDL_Color mTextColor;
   SDL_Color mCurrentColor;
   bool mIsHovered;
   std::function<void()> mOnClick;

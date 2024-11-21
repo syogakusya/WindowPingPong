@@ -1,51 +1,47 @@
 #include "Button.h"
 
-Button::Button(const std::string &text, Vector2 position, Vector2 size,
-               SDL_Color normalColor, SDL_Color hoverColor)
-    : mText(text), mPosition(position), mSize(size), mNormalColor(normalColor), mHoverColor(hoverColor), mCurrentColor(normalColor), mIsHovered(false)
+Button::Button(const std::string &text, Vector2 pos, Vector2 size, SDL_Color normalColor, SDL_Color hoverColor, SDL_Color textColor)
+    : mText(text), mPosition(pos), mSize(size), mNormalColor(normalColor),
+      mHoverColor(hoverColor), mTextColor(textColor), mIsHovered(false), mOnClick(nullptr)
 {
+}
+
+void Button::HandleClick(const Vector2 &mousePos)
+{
+  SDL_Rect rect = {static_cast<int>(mPosition.x), static_cast<int>(mPosition.y),
+                   static_cast<int>(mSize.x), static_cast<int>(mSize.y)};
+
+  SDL_Point point = mousePos.ToSDLPoint();
+
+  if (SDL_PointInRect(&point, &rect))
+  {
+    if (mOnClick)
+    {
+      mOnClick();
+    }
+  }
 }
 
 void Button::Update(const Vector2 &mousePos)
 {
-  // ホバーを検知
-  mIsHovered = IsInside(mousePos);
-  mCurrentColor = mIsHovered ? mHoverColor : mNormalColor;
+  SDL_Rect rect = {static_cast<int>(mPosition.x), static_cast<int>(mPosition.y),
+                   static_cast<int>(mSize.x), static_cast<int>(mSize.y)};
+  SDL_Point point = mousePos.ToSDLPoint();
+  mIsHovered = SDL_PointInRect(&point, &rect);
 }
 
 void Button::Draw(SDL_Renderer *renderer, TextRenderer *textRenderer)
 {
-  SDL_Rect buttonRect = {
-      static_cast<int>(mPosition.x),
-      static_cast<int>(mPosition.y),
-      static_cast<int>(mSize.x),
-      static_cast<int>(mSize.y)};
+  SDL_Color currentColor = mIsHovered ? mHoverColor : mNormalColor;
+  SDL_SetRenderDrawColor(renderer, currentColor.r, currentColor.g, currentColor.b, currentColor.a);
+  SDL_Rect rect = {static_cast<int>(mPosition.x), static_cast<int>(mPosition.y),
+                   static_cast<int>(mSize.x), static_cast<int>(mSize.y)};
+  SDL_RenderFillRect(renderer, &rect);
 
-  // ボタンの背景を描画
-  SDL_SetRenderDrawColor(
-      renderer,
-      mCurrentColor.r, mCurrentColor.g, mCurrentColor.b, mCurrentColor.a);
-  SDL_RenderFillRect(renderer, &buttonRect);
-
-  // テキストを中央揃えで描画
-  SDL_Color textColor = {255, 255, 255, 255};
-  int textX = mPosition.x + (mSize.x - mText.length() * 12) / 2; // 12は文字の平均幅
-  int textY = mPosition.y + (mSize.y - 24) / 2;                  // 24はフォントサイズ
-  textRenderer->RenderText(mText, textX, textY, textColor, renderer);
-}
-
-bool Button::HandleClick(const Vector2 &mousePos)
-{
-  if (IsInside(mousePos) && mOnClick)
-  {
-    mOnClick();
-    return true;
-  }
-  return false;
-}
-
-bool Button::IsInside(const Vector2 &point) const
-{
-  return point.x >= mPosition.x && point.x <= mPosition.x + mSize.x &&
-         point.y >= mPosition.y && point.y <= mPosition.y + mSize.y;
+  // テキストの描画（中央配置）
+  int textWidth, textHeight;
+  textRenderer->GetTextSize(mText, textWidth, textHeight);
+  float textX = mPosition.x + (mSize.x - textWidth) / 2.0f;
+  float textY = mPosition.y + (mSize.y - textHeight) / 2.0f;
+  textRenderer->RenderText(mText, static_cast<int>(textX), static_cast<int>(textY), mTextColor, renderer);
 }

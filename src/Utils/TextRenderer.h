@@ -24,6 +24,8 @@ public:
 
   void SetFontSize(int fontSize);
 
+  void GetTextSize(const std::string &text, int &width, int &height) const;
+
 private:
   std::string GetFontPath(const std::string &fontPath);
 

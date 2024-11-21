@@ -60,15 +60,18 @@ void Ball::ClampWindowPosition()
 
 void Ball::ClampBallPosition()
 {
-  if (mWorldPos.x > GameObject::mScreenSize.x - mBallSize / 2.0f && mVelocity.x > 0.0f) // 右壁
+  if (mIsRLScreenCollision)
   {
-    mWorldPos.x = GameObject::mScreenSize.x - mBallSize / 2.0f;
-    mVelocity.x *= -1.0f;
-  }
-  else if (mWorldPos.x < mBallSize / 2.0f && mVelocity.x < 0.0f) // 左壁
-  {
-    mWorldPos.x = mBallSize / 2.0f;
-    mVelocity.x *= -1.0f;
+    if (mWorldPos.x > GameObject::mScreenSize.x - mBallSize / 2.0f && mVelocity.x > 0.0f) // 右壁
+    {
+      mWorldPos.x = GameObject::mScreenSize.x - mBallSize / 2.0f;
+      mVelocity.x *= -1.0f;
+    }
+    else if (mWorldPos.x < mBallSize / 2.0f && mVelocity.x < 0.0f) // 左壁
+    {
+      mWorldPos.x = mBallSize / 2.0f;
+      mVelocity.x *= -1.0f;
+    }
   }
 
   if (mWorldPos.y > GameObject::mScreenSize.y - mBallSize / 2.0f && mVelocity.y > 0.0f) // 下壁

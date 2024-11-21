@@ -4,13 +4,17 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <iostream>
+#include "../Game.h"
 #include "Scene.h"
+#include "SceneManager.h"
 #include "../GameObjects/Ball.h"
 #include "../GameObjects/Paddle.h"
 #include "../GameObjects/MasterWindow.h"
 #include "../Utils/TextRenderer.h"
 #include "../UI/Button.h"
 #include "../GameObjects/ObstacleWindow.h"
+#include "../Utils/HighScoreManager.h"
 
 class GamePlayScene : public Scene
 {
@@ -22,9 +26,12 @@ public:
   void Draw() override;
   void Shutdown() override;
   void HandleEvent(const SDL_Event &event) override;
+  void CheckBallCollisions(Ball *ball);
+  void SpawnObstacle();
+  void UpdateObstacles(float deltaTime);
+  bool CheckObstacleCollision(const Vector2 &pos) const;
 
 private:
-  void CheckBallCollisions(std::unique_ptr<Ball> &ball);
   void AddBall(Vector2 pos, Vector2 velocity);
 
   std::unique_ptr<MasterWindow> mMasterWindow;
@@ -50,7 +57,7 @@ private:
     GameClear
   };
 
-  GameState mCurrentState;
+  GameState mCurrentState = GameState::Start;
 
   std::unique_ptr<Button> mRestartButton;
   Vector2 mLocalMousePos;
@@ -61,7 +68,8 @@ private:
   std::vector<std::unique_ptr<ObstacleWindow>> mObstacles;
   float mObstacleSpawnTimer;
 
-  void SpawnObstacle();
-  void UpdateObstacles(float deltaTime);
-  bool CheckObstacleCollision(const Vector2 &pos) const;
+  HighScoreManager mHighScoreManager;
+  bool mIsGameOver;
+
+  std::unique_ptr<Button> mReturnToStartButton;
 };

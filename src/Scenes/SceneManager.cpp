@@ -1,5 +1,11 @@
 #include "SceneManager.h"
 
+SceneManager &SceneManager::GetInstance()
+{
+  static SceneManager instance;
+  return instance;
+}
+
 void SceneManager::ChangeScene(std::unique_ptr<Scene> newScene)
 {
   SDL_Log("シーン変更を開始します");
