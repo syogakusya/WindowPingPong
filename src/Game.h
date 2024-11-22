@@ -1,9 +1,9 @@
 #pragma once
 #include <SDL.h>
 #include <SDL_ttf.h>
+#include <SDL_mixer.h>
 #include "Scenes/SceneManager.h"
 #include "Scenes/StartScene.h"
-#include <SDL_mixer.h>
 
 class Game
 {

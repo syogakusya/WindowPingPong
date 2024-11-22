@@ -1,131 +1,118 @@
-# プロジェクト名（ディレクトリ名から取得）
-PROJECT_NAME := $(notdir $(CURDIR))
+# クロスプラットフォーム対応のMakefile（WindowsとmacOS）
 
-# コンパイラの設定
+# ビルド出力ディレクトリ
+BUILD_DIR := build
+
+# シェルの設定
 ifeq ($(OS),Windows_NT)
-		BUILDDIR = build
-		MKDIR = cmd /c If not exist $(BUILDDIR) mkdir
-		CXX = g++
-		RM = cmd /c rd /Q /S
-		EXE = .exe
-		SRCDIR = src
-		SDL_CFLAGS = -IC:\SDL2\include\SDL2 -IC:\SDL2_ttf\include -Dmain=SDL_main
-		SDL_LIBS = -LC:\SDL2\lib -LC:\SDL2_ttf\lib -lmingw32 -lSDL2main -lSDL2 -lSDL2_ttf
+    PLATFORM := windows
+    SHELL := cmd.exe
+    PATH_SEPARATOR := /
 else
-		BUILDDIR = build
-		MKDIR = mkdir -p
-		CXX = g++
-		RM = rm -rf
-		EXE = .exe
-		SRCDIR = src
-		SDL_CFLAGS = $$(sdl2-config --cflags) $$(pkg-config --cflags SDL2_ttf) $$(pkg-config --cflags SDL2_mixer)
-		SDL_LIBS = $$(sdl2-config --libs) $$(pkg-config --libs SDL2_ttf) $$(pkg-config --libs SDL2_mixer)
+    PLATFORM := mac
+    SHELL := /bin/sh
+    PATH_SEPARATOR := /
 endif
 
-# コンパイルオプション
-CXXFLAGS = -std=c++17 -Wall -Wextra -g $(SDL_CFLAGS)
+# 共通の設定
+CC := g++
+CXX := g++
+CFLAGS := -std=c++17 -Wall -Wextra
+SRCS := $(wildcard src/**/*.cpp src/*.cpp)
+OBJS := $(patsubst src/%.cpp,$(BUILD_DIR)/src/%.o,$(SRCS))
 
-# macOS向けの追加設定
-ifeq ($(shell uname),Darwin)
-	LDFLAGS += -framework Cocoa -framework Metal -framework MetalKit
-	APP_NAME = $(PROJECT_NAME).app
-	APP_CONTENTS = $(APP_NAME)/Contents
-	APP_MACOS = $(APP_CONTENTS)/MacOS
-	APP_RESOURCES = $(APP_CONTENTS)/Resources
+# プラットフォーム固有の設定
+ifeq ($(PLATFORM), windows)
+    SDL2_DIR := libs/SDL2/windows
+    SDL2_TTF_DIR := libs/SDL2_ttf/windows
+    SDL2_MIXER_DIR := libs/SDL2_mixer/windows
+    CFLAGS += -I$(SDL2_DIR)/include/SDL2 -I$(SDL2_TTF_DIR)/include/SDL2 -I$(SDL2_MIXER_DIR)/include/SDL2
+    LDFLAGS := -L$(SDL2_DIR)/lib -L$(SDL2_TTF_DIR)/lib -L$(SDL2_MIXER_DIR)/lib \
+               -lmingw32 -lSDL2main -lSDL2 -lSDL2_ttf -lSDL2_mixer -mwindows
+    TARGET := $(BUILD_DIR)/WindowPingPong.exe
+    DLLS := $(SDL2_DIR)/lib/SDL2.dll $(SDL2_TTF_DIR)/lib/SDL2_ttf.dll $(SDL2_MIXER_DIR)/lib/SDL2_mixer.dll
+    ifeq ($(SHELL),cmd.exe)
+        MKDIR := mkdir
+        COPY := copy
+        CLEAN_CMD := rmdir /S /Q $(BUILD_DIR)
+    else
+        MKDIR := mkdir -p
+        COPY := cp
+        CLEAN_CMD := rm -rf $(BUILD_DIR)
+    endif
 endif
 
-# リンクオプション
-LDFLAGS = $(SDL_LIBS)
+# ビルドディレクトリの設定
+BUILD_DIRS := \
+    $(BUILD_DIR)/src/GameObjects \
+    $(BUILD_DIR)/src/Scenes \
+    $(BUILD_DIR)/src/UI \
+    $(BUILD_DIR)/src/Utils
 
-# ソースファイルとオブジェクトファイル
-SRCS = $(wildcard $(SRCDIR)/*.cpp) $(wildcard $(SRCDIR)/*/*.cpp)
-OBJS = $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(SRCS))
-
-# 実行ファイル名
-TARGET = $(BUILDDIR)/$(PROJECT_NAME)$(EXE)
-
-# サブディレクトリの取得とビルドディレクトリの作成
-SUBDIRS := $(sort $(dir $(SRCS)))
-BUILD_SUBDIRS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SUBDIRS))
-
-# フォントファイルのパスを定義（プロジェクトのルートディレクトリからの相対パス）
-FONT_PATH = fonts
-
-.PHONY: all clean bundle
-
-# デフォルトターゲット
-all: $(BUILDDIR) $(TARGET)
-ifeq ($(shell uname),Darwin)
-	$(MAKE) bundle
-endif
+# すべてのターゲットをビルド
+all: $(BUILD_DIR) $(TARGET)
 
 # ビルドディレクトリの作成
-$(BUILDDIR):
-	@$(MKDIR) $(BUILD_SUBDIRS)
-
-# オブジェクトファイルの生成
-$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
-	@echo "Compiling $<..."
-	@$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# 実行ファイルの生成
-$(TARGET): $(OBJS)
-	@echo "Linking $@..."
-	@$(CXX) $(OBJS) -o $@ $(LDFLAGS)
-
-# macOS用の.appバンドル作成
-bundle:
-ifeq ($(shell uname),Darwin)
-	@echo "Creating application bundle..."
-	@mkdir -p $(APP_MACOS)
-	@mkdir -p $(APP_RESOURCES)
-	@mkdir -p $(APP_RESOURCES)/fonts
-	@cp $(TARGET) $(APP_MACOS)/$(PROJECT_NAME)
-	@cp $(FONT_PATH)/*.ttf $(APP_RESOURCES)/fonts/
-	@echo "Copying fonts to Resources directory..."
-	@echo '<?xml version="1.0" encoding="UTF-8"?>\
-	<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\
-	<plist version="1.0">\
-	<dict>\
-		<key>CFBundleExecutable</key>\
-			<string>$(PROJECT_NAME)</string>\
-		<key>CFBundleIdentifier</key>\
-			<string>com.example.$(PROJECT_NAME)</string>\
-		<key>CFBundleName</key>\
-			<string>$(PROJECT_NAME)</string>\
-		<key>CFBundlePackageType</key>\
-			<string>APPL</string>\
-		<key>CFBundleShortVersionString</key>\
-			<string>1.0</string>\
-		<key>LSMinimumSystemVersion</key>\
-			<string>10.10</string>\
-	</dict>\
-	</plist>' > $(APP_CONTENTS)/Info.plist
-	@echo "Application bundle created: $(APP_NAME)"
+$(BUILD_DIR):
+ifeq ($(SHELL),cmd.exe)
+	@for %%d in ($(BUILD_DIRS)) do ($(MKDIR) "%%d")
+else
+	@$(foreach dir,$(BUILD_DIRS),$(MKDIR) "$(dir)";)
 endif
+	@echo "ディレクトリを作成しました"
+
+# コピーコマンドの定義
+ifeq ($(PLATFORM), windows)
+ifeq ($(SHELL),cmd.exe)
+COPY_DLLS := \
+    $(COPY) "$(SDL2_DIR)\bin\SDL2.dll" "$(BUILD_DIR)\" & \
+    $(COPY) "$(SDL2_TTF_DIR)\bin\SDL2_ttf.dll" "$(BUILD_DIR)\" & \
+    $(COPY) "$(SDL2_MIXER_DIR)\bin\SDL2_mixer.dll" "$(BUILD_DIR)\"
+else
+COPY_DLLS := $(COPY) $(DLLS) $(BUILD_DIR)/
+endif
+endif
+
+# ターゲットのリンク
+ifeq ($(PLATFORM), mac)
+$(TARGET): $(OBJS)
+	@mkdir -p $(APP_DIRS)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	# Info.plistの作成（省略）
+else ifeq ($(PLATFORM), windows)
+$(TARGET): $(OBJS)
+	$(CXX) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(COPY_DLLS)
+endif
+
+# オブジェクトファイルのコンパイルルール
+$(BUILD_DIR)/src/%.o: src/%.cpp
+ifeq ($(SHELL),cmd.exe)
+	@if not exist "$(dir $@)" $(MKDIR) "$(dir $@)"
+else
+	@$(MKDIR) -p "$(dir $@)"
+endif
+	$(CXX) $(CFLAGS) -c $< -o $@
 
 # クリーンアップ
 clean:
-	@echo "Cleaning build directory..."
-	@$(RM) $(BUILDDIR)
-ifeq ($(shell uname),Darwin)
-	@echo "Cleaning application bundle..."
-	@$(RM) $(APP_NAME)
+	$(CLEAN_CMD)
+
+# 実行
+run: $(TARGET)
+ifeq ($(PLATFORM), windows)
+	$(TARGET)
+else ifeq ($(PLATFORM), mac)
+	open $(APP_BUNDLE)
 endif
 
-run:
-	@echo "Running $(TARGET)..."
-ifeq ($(shell uname),Darwin)
-	@open ./WindowPingPong.app
-else
-	@./build/WindowPingPong.exe
+# デバッグ実行
+debug: $(TARGET)
+ifeq ($(PLATFORM), windows)
+	$(TARGET) --debug
+else ifeq ($(PLATFORM), mac)
+	$(TARGET) --debug
 endif
 
-ifeq ($(shell uname),Darwin)
-debug:
-	@./WindowPingPong.app/Contents/MacOS/WindowPingPong 2>&1
-
-lldebug:
-	lldb ./WindowPingPong.app/Contents/MacOS/WindowPingPong
-endif
-
+# 擬似ターゲットの宣言
+.PHONY: all clean run debug
