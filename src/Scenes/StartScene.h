@@ -32,4 +32,5 @@ private:
 
   bool prevBallReverseX = false;
   bool prevBallReverseY = false;
+  int mWindowSize;
 };

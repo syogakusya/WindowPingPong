@@ -23,6 +23,8 @@ void StartScene::Initialize()
     return;
   }
 
+  mWindowSize = mScreen->y / 5;
+
   mMasterWindow = std::unique_ptr<MasterWindow>(
       new MasterWindow(
           "WindowsPingPong",
@@ -34,29 +36,29 @@ void StartScene::Initialize()
   mPixelifySansRenderer = std::unique_ptr<TextRenderer>(
       new TextRenderer("PixelifySans-VariableFont_wght.ttf", 24));
 
+  Vector2 ballVelocity(300.0f, 300.0f);
+  mBall = std::unique_ptr<Ball>(
+      new Ball(
+          Vector2(mScreen->x / 2, mScreen->y / 2 + 200),
+          Vector2(mWindowSize, mWindowSize),
+          20,
+          mMasterWindow->GetOffSetY()));
+  mBall->SetVelocity(ballVelocity);
+  mBall->mIsRLScreenCollision = true;
+
   char title[9] = "PINGPONG";
   for (int i = 0; i < static_cast<int>(strlen(title)); ++i)
   {
     char title_[2] = {title[i], '\0'};
     float posX = mScreen->x / 9 + mScreen->x / 9 * i;
-    float posY = mScreen->y / 2 + std::sin(i * 5) * 100;
+    float posY = mScreen->y / 2 + std::sin(i * 5) * 200;
     auto logoWindow = std::make_unique<LogoWindow>(
         std::string(title_).c_str(),
         Vector2(posX, posY),
-        Vector2(200, 200),
-        SDL_WINDOW_ALWAYS_ON_TOP);
+        Vector2(mWindowSize, mWindowSize),
+        0);
     mLogoWindows.push_back(std::move(logoWindow));
   }
-
-  Vector2 ballVelocity(300.0f, 300.0f);
-  mBall = std::unique_ptr<Ball>(
-      new Ball(
-          Vector2(mScreen->x / 2, mScreen->y / 2 + 200),
-          Vector2(200, 200),
-          20,
-          mMasterWindow->GetOffSetY()));
-  mBall->SetVelocity(ballVelocity);
-  mBall->mIsRLScreenCollision = true;
 }
 
 void StartScene::HandleInput(const Uint8 *keyState)

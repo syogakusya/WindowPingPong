@@ -15,6 +15,7 @@
 #include "../UI/Button.h"
 #include "../GameObjects/ObstacleWindow.h"
 #include "../Utils/HighScoreManager.h"
+#include "../Utils/Vector2.h"
 
 class GamePlayScene : public Scene
 {
@@ -47,6 +48,7 @@ private:
   bool prevBallReverseX;
   bool prevBallReverseY;
   bool isPaddleObstacleCollision;
+  int mWindowSize;
 
   enum class GameState
   {

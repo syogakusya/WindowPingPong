@@ -3,7 +3,6 @@
 using namespace std;
 
 const int MASTER_WINDOW_HEIGHT = 160;
-const int WINDOW_SIZE = 200;
 const int BALL_SIZE = 16;
 const int PADDLE_WIDTH = 16;
 const int PADDLE_HEIGHT = 100;
@@ -45,6 +44,8 @@ void GamePlayScene::Initialize()
 
   std::cout << mScreen->x << " " << mScreen->y << std::endl;
 
+  mWindowSize = mScreen->y / 5;
+
   mMasterWindow =
       std::unique_ptr<MasterWindow>(
           new MasterWindow(
@@ -56,7 +57,7 @@ void GamePlayScene::Initialize()
   auto initialBall = std::unique_ptr<Ball>(
       new Ball(
           Vector2(mScreen->x / 2, mScreen->y / 2),
-          Vector2(WINDOW_SIZE, WINDOW_SIZE),
+          Vector2(mWindowSize, mWindowSize),
           BALL_SIZE,
           mMasterWindow->GetOffSetY()));
   initialBall->SetVelocity(Vector2(-120.0f, 135.0f));
@@ -73,7 +74,7 @@ void GamePlayScene::Initialize()
   mPaddle = std::unique_ptr<Paddle>(
       new Paddle(
           Vector2(mScreen->x / 4, mScreen->y / 2),
-          Vector2(WINDOW_SIZE, WINDOW_SIZE),
+          Vector2(mWindowSize, mWindowSize),
           PADDLE_WIDTH, PADDLE_HEIGHT, mMasterWindow->GetOffSetY()));
 
   mPixelifySansRenderer = std::unique_ptr<TextRenderer>(
@@ -478,7 +479,7 @@ void GamePlayScene::AddBall(Vector2 pos, Vector2 velocity)
 {
   try
   {
-    auto newBall = std::make_unique<Ball>(pos, Vector2(WINDOW_SIZE, WINDOW_SIZE), BALL_SIZE, mMasterWindow->GetOffSetY());
+    auto newBall = std::make_unique<Ball>(pos, Vector2(mWindowSize, mWindowSize), BALL_SIZE, mMasterWindow->GetOffSetY());
 
     if (!newBall)
     {

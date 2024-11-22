@@ -1,7 +1,7 @@
 #include "Ball.h"
 
 Ball::Ball(Vector2 pos, Vector2 size, int ballSize, int offSetY)
-    : GameObject("Ball", pos, size, SDL_WINDOW_ALWAYS_ON_TOP),
+    : GameObject("Ball", pos, size, 0),
       mBallSize(ballSize), mOffSetY(offSetY), mLastMoveDistance(0.0f, 0.0f)
 {
   mVelocity = Vector2(200.0f, 235.0f);

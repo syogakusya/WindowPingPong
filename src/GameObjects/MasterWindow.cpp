@@ -26,4 +26,3 @@ void MasterWindow::Draw(SDL_Renderer *renderer)
         static_cast<int>(mWindowSize.y - mMargin * 2)};
     SDL_RenderFillRect(renderer, &background);
 }
-
