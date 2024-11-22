@@ -3,7 +3,7 @@
 // フォントパスの取得
 std::string TextRenderer::GetFontPath(const std::string &fontPath)
 {
-  return "../../fonts/" + fontPath;
+  return "./assets/fonts/" + fontPath;
 }
 
 TextRenderer::TextRenderer(const std::string &fontPath, int fontSize)

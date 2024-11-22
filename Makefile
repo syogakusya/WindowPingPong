@@ -1,5 +1,3 @@
-# クロスプラットフォーム対応のMakefile（WindowsとmacOS）
-
 # ビルド出力ディレクトリ
 BUILD_DIR := build
 
@@ -8,11 +6,16 @@ ifeq ($(OS),Windows_NT)
     PLATFORM := windows
     SHELL := cmd.exe
     PATH_SEPARATOR := /
+    COPY := xcopy /E /I /Y
 else
     PLATFORM := mac
     SHELL := /bin/sh
     PATH_SEPARATOR := /
+    COPY := cp -r
 endif
+
+# アセットのディレクトリ
+ASSETS := assets$(PATH_SEPARATOR)fonts assets$(PATH_SEPARATOR)sounds assets$(PATH_SEPARATOR)images
 
 # 共通の設定
 CC := g++
@@ -32,12 +35,10 @@ ifeq ($(PLATFORM), windows)
     TARGET := $(BUILD_DIR)/WindowPingPong.exe
     DLLS := $(SDL2_DIR)/lib/SDL2.dll $(SDL2_TTF_DIR)/lib/SDL2_ttf.dll $(SDL2_MIXER_DIR)/lib/SDL2_mixer.dll
     ifeq ($(SHELL),cmd.exe)
-        MKDIR := mkdir
-        COPY := copy
+        MKDIR := mkdir /p
         CLEAN_CMD := rmdir /S /Q $(BUILD_DIR)
     else
         MKDIR := mkdir -p
-        COPY := cp
         CLEAN_CMD := rm -rf $(BUILD_DIR)
     endif
 endif
@@ -50,7 +51,7 @@ BUILD_DIRS := \
     $(BUILD_DIR)/src/Utils
 
 # すべてのターゲットをビルド
-all: $(BUILD_DIR) $(TARGET)
+all: $(BUILD_DIR) copy_assets $(TARGET)
 
 # ビルドディレクトリの作成
 $(BUILD_DIR):
@@ -60,6 +61,20 @@ else
 	@$(foreach dir,$(BUILD_DIRS),$(MKDIR) "$(dir)";)
 endif
 	@echo "ディレクトリを作成しました"
+
+# アセットをビルドディレクトリにコピー
+copy_assets:
+ifeq ($(PLATFORM), windows)
+	@echo "アセットをコピーしています..."
+	$(foreach dir,$(ASSETS), \
+		$(COPY) "$(dir)" "$(BUILD_DIR)$(PATH_SEPARATOR)$(dir)" &)
+	@echo "アセットをコピーしました"
+else
+	@$(foreach dir,$(ASSETS), \
+		$(MKDIR) "$(BUILD_DIR)/$(dir)"; \
+		$(COPY) "$(dir)/*" "$(BUILD_DIR)/$(dir)/";)
+	@echo "アセットをコピーしました"
+endif
 
 # コピーコマンドの定義
 ifeq ($(PLATFORM), windows)
@@ -78,7 +93,21 @@ ifeq ($(PLATFORM), mac)
 $(TARGET): $(OBJS)
 	@mkdir -p $(APP_DIRS)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDFLAGS)
-	# Info.plistの作成（省略）
+	@echo "Info.plistを作成しています..."
+	@echo '<?xml version="1.0" encoding="UTF-8"?>' > $(APP_BUNDLE)/Contents/Info.plist
+	@echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> $(APP_BUNDLE)/Contents/Info.plist
+	@echo '<plist version="1.0">' >> $(APP_BUNDLE)/Contents/Info.plist
+	@echo '<dict>' >> $(APP_BUNDLE)/Contents/Info.plist
+	@echo '  <key>CFBundleExecutable</key>' >> $(APP_BUNDLE)/Contents/Info.plist
+	@echo '  <string>$(APP_NAME)</string>' >> $(APP_BUNDLE)/Contents/Info.plist
+	@echo '  <key>CFBundleIdentifier</key>' >> $(APP_BUNDLE)/Contents/Info.plist
+	@echo '  <string>com.example.$(APP_NAME)</string>' >> $(APP_BUNDLE)/Contents/Info.plist
+	@echo '  <key>CFBundleName</key>' >> $(APP_BUNDLE)/Contents/Info.plist
+	@echo '  <string>$(APP_NAME)</string>' >> $(APP_BUNDLE)/Contents/Info.plist
+	@echo '  <key>CFBundleVersion</key>' >> $(APP_BUNDLE)/Contents/Info.plist
+	@echo '  <string>1.0</string>' >> $(APP_BUNDLE)/Contents/Info.plist
+	@echo '</dict>' >> $(APP_BUNDLE)/Contents/Info.plist
+	@echo '</plist>' >> $(APP_BUNDLE)/Contents/Info.plist
 else ifeq ($(PLATFORM), windows)
 $(TARGET): $(OBJS)
 	$(CXX) $(CFLAGS) -o $@ $^ $(LDFLAGS)
@@ -116,3 +145,22 @@ endif
 
 # 擬似ターゲットの宣言
 .PHONY: all clean run debug
+
+# クリーンビルド用のディクトリ
+CLEAN_BUILD_DIR := clean_build
+
+# クリーンビルドの作成
+clean_build: clean
+	$(MKDIR) $(CLEAN_BUILD_DIR)
+ifeq ($(SHELL),cmd.exe)
+	@for %%d in ($(ASSETS)) do (
+		$(MKDIR) "$(CLEAN_BUILD_DIR)\%%d"
+		$(COPY) "%%d\*" "$(CLEAN_BUILD_DIR)\%%d\"
+	)
+	$(COPY) "$(TARGET)" "$(CLEAN_BUILD_DIR)\"
+else
+	@$(foreach dir,$(ASSETS),$(MKDIR) "$(CLEAN_BUILD_DIR)/$(dir)"; \
+		$(COPY) "$(dir)/*" "$(CLEAN_BUILD_DIR)/$(dir)/";)
+	$(COPY) $(TARGET) $(CLEAN_BUILD_DIR)/
+endif
+	@echo "クリーンビルドを作成しました: $(CLEAN_BUILD_DIR)"
