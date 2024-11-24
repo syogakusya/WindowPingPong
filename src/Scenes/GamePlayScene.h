@@ -43,10 +43,7 @@ private:
   std::unique_ptr<TextRenderer> mPixelifySansRenderer;
 
   bool mPrevSpaceKeyState;
-  bool isBallCollision;
   int mScore;
-  bool prevBallReverseX;
-  bool prevBallReverseY;
   bool isPaddleObstacleCollision;
   int mWindowSize;
 

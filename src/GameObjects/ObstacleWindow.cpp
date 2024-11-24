@@ -8,8 +8,7 @@ ObstacleWindow::ObstacleWindow(
     float duration,
     int closeCount)
     : GameObject(windowName, pos, size,
-                 SDL_WINDOW_ALWAYS_ON_TOP |
-                     (type == Type::Transparent ? SDL_WINDOW_BORDERLESS : 0)),
+                 (type == Type::Transparent ? SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALWAYS_ON_TOP : 0)),
       mType(type),
       mLifeTime(duration),
       mDuration(duration),

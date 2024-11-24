@@ -1,6 +1,7 @@
 #pragma once
 #include "GameObject.h"
 #include "Ball.h"
+#include "ObstacleWindow.h"
 
 class Paddle : public GameObject
 {
@@ -21,6 +22,8 @@ private:
   int mPaddleHeight;
   int mOffSetY;
   bool mIsFollowingMouse;
+  bool mIsFollowingCollision;
+  Vector2 mCollisionPos;
 
   void UpdateMouseFollow();
   void ClampWindowPosition();

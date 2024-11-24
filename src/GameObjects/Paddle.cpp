@@ -6,13 +6,14 @@ Paddle::Paddle(
     Vector2 pos,
     Vector2 size,
     int paddleWidth, int paddleHeight, int offSetY)
-    : GameObject("Paddle", pos, size, SDL_WINDOW_ALWAYS_ON_TOP),
+    : GameObject("Paddle", pos, size, 0),
       mDirection(0.0f),
       mSpeed(PADDLE_SPEED),
       mPaddleWidth(paddleWidth),
       mPaddleHeight(paddleHeight),
       mOffSetY(offSetY),
-      mIsFollowingMouse(false)
+      mIsFollowingMouse(false),
+      mIsFollowingCollision(false)
 {
 }
 

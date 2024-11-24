@@ -28,7 +28,7 @@ void StartScene::Initialize()
   mMasterWindow = std::unique_ptr<MasterWindow>(
       new MasterWindow(
           "WindowsPingPong",
-          Vector2(mScreen->x / 2, 0),
+          Vector2(mScreen->x / 2, MASTER_WINDOW_HEIGHT / 2),
           Vector2(mScreen->x, MASTER_WINDOW_HEIGHT),
           UI_MARGIN,
           SDL_WINDOW_ALWAYS_ON_TOP | SDL_WINDOW_BORDERLESS));
@@ -93,8 +93,6 @@ void StartScene::CheckCollisions(Ball *ball, LogoWindow *logoWindow)
 
   if (ball->CheckBallCollision(&logoRect))
   {
-    logoWindow->StartShake(0.15f, 5.0f);
-
     Vector2 ballPos = ball->GetWorldPos();
     Vector2 logoPos = logoWindow->GetWindowPos();
     Vector2 logoSize = logoWindow->GetWindowSize();
@@ -133,6 +131,11 @@ void StartScene::CheckCollisions(Ball *ball, LogoWindow *logoWindow)
   {
     prevBallReverseX = false;
     prevBallReverseY = false;
+  }
+
+  if (prevBallReverseX || prevBallReverseY)
+  {
+    logoWindow->StartShake(0.15f, 3.0f);
   }
 }
 
