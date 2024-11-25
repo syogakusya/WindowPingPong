@@ -9,7 +9,7 @@ const int PADDLE_HEIGHT = 100;
 const float PADDLE_SPEED = 300.0f;
 const int UI_MARGIN = 6;
 const float MAX_BALL_SPEED = 500.0f;
-const float OBSTACLE_SPAWN_INTERVAL = 7.0f; // 障害物生成間隔
+const float OBSTACLE_SPAWN_INTERVAL = 6.5f; // 障害物生成間隔
 
 GamePlayScene::GamePlayScene()
     : mScore(0),
@@ -392,7 +392,7 @@ void GamePlayScene::Draw()
 
   for (auto &obstacle : mObstacles)
   {
-    obstacle->Draw(mMasterWindow->GetRenderer());
+    obstacle->Draw(obstacle->GetRenderer());
     obstacle->RenderPresent(obstacle->GetRenderer());
   }
 }
@@ -521,7 +521,7 @@ void GamePlayScene::CheckBallCollisions(Ball *ball)
         ball->SetIsCollisionX(false);
       }
 
-      if (ball->GetIsCollisionX() || ball->GetIsCollisionY())
+      if (!ball->GetIsCollisionX() && !ball->GetIsCollisionY())
       {
         obstacle->StartShake(0.15f, 3.0f);
         // 障害物との衝突時に効果音を再生

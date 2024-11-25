@@ -33,6 +33,12 @@ bool Game::Initialize()
     return false;
   }
 
+  if (IMG_Init(IMG_INIT_JPG) != IMG_INIT_JPG)
+  {
+    SDL_Log("SDL_imageの初期化に失敗しました: %s", IMG_GetError());
+    return false;
+  }
+
   Mix_AllocateChannels(16);
 
   auto startScene = std::make_unique<StartScene>();
@@ -47,6 +53,7 @@ void Game::Shutdown()
   Mix_CloseAudio();
   Mix_Quit();
   TTF_Quit();
+  IMG_Quit();
   SDL_Quit();
 }
 

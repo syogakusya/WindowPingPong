@@ -40,9 +40,10 @@ ifeq ($(PLATFORM), windows)
     SDL2_DIR := libs/SDL2/windows
     SDL2_TTF_DIR := libs/SDL2_ttf/windows
     SDL2_MIXER_DIR := libs/SDL2_mixer/windows
-    CFLAGS += -I$(SDL2_DIR)/include/SDL2 -I$(SDL2_TTF_DIR)/include/SDL2 -I$(SDL2_MIXER_DIR)/include/SDL2
-    LDFLAGS := -L$(SDL2_DIR)/lib -L$(SDL2_TTF_DIR)/lib -L$(SDL2_MIXER_DIR)/lib \
-               -lmingw32 -lSDL2main -lSDL2 -lSDL2_ttf -lSDL2_mixer
+    SDL2_IMAGE_DIR := libs/SDL2_image/windows
+    CFLAGS += -I$(SDL2_DIR)/include/SDL2 -I$(SDL2_TTF_DIR)/include/SDL2 -I$(SDL2_MIXER_DIR)/include/SDL2 -I$(SDL2_IMAGE_DIR)/include/SDL2
+    LDFLAGS := -L$(SDL2_DIR)/lib -L$(SDL2_TTF_DIR)/lib -L$(SDL2_MIXER_DIR)/lib -L$(SDL2_IMAGE_DIR)/lib \
+               -lmingw32 -lSDL2main -lSDL2 -lSDL2_ttf -lSDL2_mixer -lSDL2_image
     LDFLAGS_DEBUG += $(LDFLAGS)
     LDFLAGS_RELEASE += $(LDFLAGS) -mwindows
     TARGET := $(BUILD_DIR)/WindowPingPong.exe
@@ -102,7 +103,8 @@ ifeq ($(PLATFORM), windows)
 COPY_DLLS := \
     $(COPY) "$(SDL2_DIR)\bin\SDL2.dll" "$(BUILD_DIR)\"$(newline)\
     $(COPY) "$(SDL2_TTF_DIR)\bin\SDL2_ttf.dll" "$(BUILD_DIR)\"$(newline)\
-    $(COPY) "$(SDL2_MIXER_DIR)\bin\SDL2_mixer.dll" "$(BUILD_DIR)\"
+    $(COPY) "$(SDL2_MIXER_DIR)\bin\SDL2_mixer.dll" "$(BUILD_DIR)\"$(newline)\
+    $(COPY) "$(SDL2_IMAGE_DIR)\bin\SDL2_image.dll" "$(BUILD_DIR)\"
 endif
 
 # ターゲットのリンク
