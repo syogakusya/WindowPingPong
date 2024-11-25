@@ -8,6 +8,7 @@
 #include "../GameObjects/Ball.h"
 #include "../GameObjects/LogoWindow.h"
 #include <cmath>
+#include <SDL_mixer.h>
 
 class StartScene : public Scene
 {
@@ -34,4 +35,9 @@ private:
   bool prevBallReverseX = false;
   bool prevBallReverseY = false;
   int mWindowSize;
+
+  // サウンド関連
+  Mix_Music *mBGM;
+  Mix_Chunk *mButtonClickSound;
+  Mix_Chunk *mBallHitSound;
 };

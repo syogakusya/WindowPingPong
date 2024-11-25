@@ -14,6 +14,8 @@ void SceneManager::ChangeScene(std::unique_ptr<Scene> newScene)
   {
     SDL_Log("現在のシーンをシャットダウンします");
     mCurrentScene->Shutdown();
+    mCurrentScene.reset();
+    SDL_Delay(100);
   }
 
   SDL_Log("新しいシーンに切り替えます");

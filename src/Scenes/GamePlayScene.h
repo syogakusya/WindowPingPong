@@ -5,9 +5,10 @@
 #include <memory>
 #include <string>
 #include <iostream>
-#include "../Game.h"
+#include <SDL_mixer.h>
 #include "Scene.h"
 #include "SceneManager.h"
+#include "StartScene.h"
 #include "../GameObjects/Ball.h"
 #include "../GameObjects/Paddle.h"
 #include "../GameObjects/MasterWindow.h"
@@ -44,7 +45,6 @@ private:
 
   bool mPrevSpaceKeyState;
   int mScore;
-  bool isPaddleObstacleCollision;
   int mWindowSize;
 
   enum class GameState
@@ -71,4 +71,11 @@ private:
   bool mIsGameOver;
 
   std::unique_ptr<Button> mReturnToStartButton;
+
+  // サウンド関連
+  Mix_Music *mBGM;
+  Mix_Chunk *mPaddleHitSound;
+  Mix_Chunk *mObstacleHitSound;
+  Mix_Chunk *mGameOverSound;
+  Mix_Chunk *mButtonClickSound;
 };

@@ -7,7 +7,8 @@ std::string TextRenderer::GetFontPath(const std::string &fontPath)
 }
 
 TextRenderer::TextRenderer(const std::string &fontPath, int fontSize)
-    : mFontSize(fontSize),
+    : mFont(nullptr),
+      mFontSize(fontSize),
       mFontPath(fontPath)
 {
   if (TTF_Init() == -1)

@@ -50,6 +50,7 @@ void ObstacleWindow::Update(float deltaTime)
     }
   }
   UpdateShakeEffect(deltaTime);
+  UpdateWindowPosition();
 }
 
 void ObstacleWindow::Draw(SDL_Renderer *renderer)

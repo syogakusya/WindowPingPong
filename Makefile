@@ -158,5 +158,29 @@ else ifeq ($(PLATFORM), mac)
 	@open "$(APP_BUNDLE)"
 endif
 
+# 配布用のアーカイブを作成するターゲット
+dist:
+	@echo "配布用アーカイブを作成しています..."
+ifeq ($(OS),Windows_NT)
+	@mkdir dist
+	@xcopy /E /I /Y src dist\src
+	@xcopy /E /I /Y assets dist\assets
+	@if exist Makefile copy Makefile dist
+	@if exist README.md copy README.md dist
+	@if exist LICENSE copy LICENSE dist
+	@powershell -Command "Compress-Archive -Path 'dist\*' -DestinationPath 'WindowPingPong.zip'"
+	@rmdir /S /Q dist
+else
+	@mkdir -p dist
+	@cp -r src dist/src
+	@cp -r assets dist/assets
+	@cp Makefile dist
+	@cp README.md dist
+	@cp LICENSE dist
+	@cd dist && zip -r ../WindowPingPong.zip *
+	@rm -rf dist
+endif
+	@echo "配布用アーカイブ WindowPingPong.zip を作成しました"
+
 # 擬似ターゲットの宣言
 .PHONY: all clean run debug

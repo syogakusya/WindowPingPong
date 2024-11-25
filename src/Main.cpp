@@ -1,8 +1,8 @@
 #include "Game.h"
 
-Game* gGameInstance = nullptr;
+Game *gGameInstance = nullptr;
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     gGameInstance = new Game();
 

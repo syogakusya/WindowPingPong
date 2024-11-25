@@ -59,12 +59,52 @@ void StartScene::Initialize()
         0);
     mLogoWindows.push_back(std::move(logoWindow));
   }
+
+  mBGM = Mix_LoadMUS("assets/sounds/iwashiro_maru_maru.mp3");
+  if (!mBGM)
+  {
+    SDL_Log("BGMの読み込みに失敗しました: %s", Mix_GetError());
+  }
+  else
+  {
+    Mix_VolumeMusic(MIX_MAX_VOLUME / 12);
+    Mix_PlayMusic(mBGM, -1);
+  }
+
+  mButtonClickSound = Mix_LoadWAV("assets/sounds/decision.wav");
+  if (!mButtonClickSound)
+  {
+    SDL_Log("Button Click Soundの読み込みに失敗しました: %s", Mix_GetError());
+  }
+  else
+  {
+    Mix_VolumeChunk(mButtonClickSound, MIX_MAX_VOLUME / 5);
+  }
+
+  mBallHitSound = Mix_LoadWAV("assets/sounds/garagara.wav");
+  if (!mBallHitSound)
+  {
+    SDL_Log("Ball Hit Soundの読み込みに失敗しました: %s", Mix_GetError());
+  }
+  else
+  {
+    Mix_VolumeChunk(mBallHitSound, MIX_MAX_VOLUME / 7);
+  }
 }
 
 void StartScene::HandleInput(const Uint8 *keyState)
 {
   if (keyState[SDL_SCANCODE_RETURN])
   {
+    if (mBGM)
+    {
+      Mix_HaltMusic();
+    }
+    if (mButtonClickSound)
+    {
+      Mix_PlayChannel(-1, mButtonClickSound, 0);
+      SDL_Delay(100);
+    }
     auto gamePlayScene = std::make_unique<GamePlayScene>();
     SceneManager::GetInstance().ChangeScene(std::move(gamePlayScene));
   }
@@ -95,7 +135,6 @@ void StartScene::CheckCollisions(Ball *ball, LogoWindow *logoWindow)
   if (SDL_HasIntersection(&ballRect, &logoRect))
   {
     Vector2 ballPos = ball->GetWorldPos();
-    Vector2 ballVel = ball->GetVelocity();
     Vector2 logoPos = logoWindow->GetWindowPos();
     Vector2 logoSize = logoWindow->GetWindowSize();
     float ballSize = ball->GetBallSize();
@@ -144,7 +183,11 @@ void StartScene::CheckCollisions(Ball *ball, LogoWindow *logoWindow)
       }
     }
 
-    logoWindow->StartShake(0.3f, 5.0f);
+    if (!prevBallReverseX || !prevBallReverseY)
+    {
+      Mix_PlayChannel(-1, mBallHitSound, 0);
+      logoWindow->StartShake(0.3f, 5.0f);
+    }
   }
   else
   {
@@ -207,4 +250,20 @@ void StartScene::Shutdown()
     logoWindow.reset();
   }
   mLogoWindows.clear();
+
+  if (mBGM)
+  {
+    Mix_FreeMusic(mBGM);
+    mBGM = nullptr;
+  }
+  if (mButtonClickSound)
+  {
+    Mix_FreeChunk(mButtonClickSound);
+    mButtonClickSound = nullptr;
+  }
+  if (mBallHitSound)
+  {
+    Mix_FreeChunk(mBallHitSound);
+    mBallHitSound = nullptr;
+  }
 }

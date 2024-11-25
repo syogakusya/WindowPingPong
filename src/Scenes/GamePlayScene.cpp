@@ -9,14 +9,11 @@ const int PADDLE_HEIGHT = 100;
 const float PADDLE_SPEED = 300.0f;
 const int UI_MARGIN = 6;
 const float MAX_BALL_SPEED = 500.0f;
-const float OBSTACLE_SPAWN_INTERVAL = 10.0f; // 障害物生成間隔
-
-extern Game *gGameInstance;
+const float OBSTACLE_SPAWN_INTERVAL = 7.0f; // 障害物生成間隔
 
 GamePlayScene::GamePlayScene()
     : mScore(0),
       mObstacleSpawnTimer(OBSTACLE_SPAWN_INTERVAL),
-      isPaddleObstacleCollision(false),
       mHighScoreManager("build/highscore.txt"),
       mIsGameOver(false)
 {
@@ -38,8 +35,6 @@ void GamePlayScene::Initialize()
     SDL_Log("ディスプレイモードの取得に失敗しました: %s", SDL_GetError());
     exit(1);
   }
-
-  std::cout << mScreen->x << " " << mScreen->y << std::endl;
 
   mWindowSize = mScreen->y / 5;
 
@@ -79,6 +74,57 @@ void GamePlayScene::Initialize()
 
   mCurrentState = GameState::Playing;
 
+  // BGMのロード
+  mBGM = Mix_LoadMUS("assets/sounds/iwashiro_cook_lu_no_chousenjo.mp3");
+  if (!mBGM)
+  {
+    SDL_Log("BGMのロードに失敗しました: %s", Mix_GetError());
+  }
+
+  // 効果音のロード
+  mPaddleHitSound = Mix_LoadWAV("assets/sounds/byau.wav");
+  if (!mPaddleHitSound)
+  {
+    SDL_Log("パドル衝突音のロードに失敗しました: %s", Mix_GetError());
+  }
+
+  mObstacleHitSound = Mix_LoadWAV("assets/sounds/garagara.wav");
+  if (!mObstacleHitSound)
+  {
+    SDL_Log("障害物衝突音のロードに失敗しました: %s", Mix_GetError());
+  }
+
+  mGameOverSound = Mix_LoadWAV("assets/sounds/my_damage.wav");
+  if (!mGameOverSound)
+  {
+    SDL_Log("ゲームオーバー音のロードに失敗しました: %s", Mix_GetError());
+  }
+
+  mButtonClickSound = Mix_LoadWAV("assets/sounds/decision.wav");
+  if (!mButtonClickSound)
+  {
+    SDL_Log("ボタンクリック音のロードに失敗しました: %s", Mix_GetError());
+  }
+
+  if (mPaddleHitSound)
+    Mix_VolumeChunk(mPaddleHitSound, MIX_MAX_VOLUME / 5);
+  if (mObstacleHitSound)
+    Mix_VolumeChunk(mObstacleHitSound, MIX_MAX_VOLUME / 7);
+  if (mGameOverSound)
+    Mix_VolumeChunk(mGameOverSound, MIX_MAX_VOLUME / 5);
+  if (mButtonClickSound)
+    Mix_VolumeChunk(mButtonClickSound, MIX_MAX_VOLUME / 5);
+
+  // BGMの再生
+  if (mBGM)
+  {
+    Mix_VolumeMusic(MIX_MAX_VOLUME / 12);
+    if (Mix_PlayMusic(mBGM, -1) == -1)
+    {
+      SDL_Log("BGMの再生に失敗しました: %s", Mix_GetError());
+    }
+  }
+
   SDL_Color normalColor = {100, 100, 100, 255};
   SDL_Color hoverColor = {150, 150, 150, 255};
   mRestartButton = std::make_unique<Button>(
@@ -90,12 +136,13 @@ void GamePlayScene::Initialize()
 
   mRestartButton->SetOnClick([this]()
                              {
+    Mix_PlayChannel(-1, mButtonClickSound, 0);
     // スコアのリセット
     mScore = 0;
-    
+
     // 既存のボールをクリア
     mBalls.clear();
-    
+
     // 新しいボールの追加
     Vector2 ballVelocity(-120.0f, 135.0f);
     Vector2 ballPos(mScreen->x / 2, mScreen->y / 2);
@@ -127,13 +174,19 @@ void GamePlayScene::Initialize()
       normalColor,
       hoverColor);
 
-  mReturnToStartButton->SetOnClick([]()
+  mReturnToStartButton->SetOnClick([this]()
                                    {
-      // スタートシーンに戻る処理
-      auto startScene = std::make_unique<StartScene>();
-      SceneManager::GetInstance().ChangeScene(std::move(startScene)); });
-
-  // std::cout << mMasterWindow->GetOffSetY() << std::endl;
+    if (mBGM)
+    {
+        Mix_HaltMusic();
+    }
+    if (mButtonClickSound)
+    {
+        Mix_PlayChannel(-1, mButtonClickSound, 0);
+        SDL_Delay(100);
+    }
+    auto startScene = std::make_unique<StartScene>();
+    SceneManager::GetInstance().ChangeScene(std::move(startScene)); });
 }
 
 void GamePlayScene::HandleInput(const Uint8 *keyBoardState)
@@ -226,7 +279,7 @@ void GamePlayScene::Update(float deltaTime)
     if (mBalls.empty())
     {
       mCurrentState = GameState::GameOver;
-      std::cout << "GameOver" << std::endl;
+      Mix_PlayChannel(-1, mGameOverSound, 0);
       mHighScoreManager.UpdateHighScore(mScore);
       mIsGameOver = true;
     }
@@ -351,13 +404,39 @@ void GamePlayScene::Shutdown()
   mMasterWindow.reset();
   mPixelifySansRenderer.reset();
   mScreen.reset();
+
+  // サウンドの解放
+  if (mPaddleHitSound)
+  {
+    Mix_FreeChunk(mPaddleHitSound);
+    mPaddleHitSound = nullptr;
+  }
+  if (mObstacleHitSound)
+  {
+    Mix_FreeChunk(mObstacleHitSound);
+    mObstacleHitSound = nullptr;
+  }
+  if (mGameOverSound)
+  {
+    Mix_FreeChunk(mGameOverSound);
+    mGameOverSound = nullptr;
+  }
+  if (mButtonClickSound)
+  {
+    Mix_FreeChunk(mButtonClickSound);
+    mButtonClickSound = nullptr;
+  }
+  if (mBGM)
+  {
+    Mix_FreeMusic(mBGM);
+    mBGM = nullptr;
+  }
 }
 
 void GamePlayScene::CheckBallCollisions(Ball *ball)
 {
   if (!ball)
   {
-    std::cerr << "Error: CheckBallCollisions called with null ball." << std::endl;
     return;
   }
 
@@ -370,11 +449,6 @@ void GamePlayScene::CheckBallCollisions(Ball *ball)
       ball->SetIsCollisionPaddle(true);
       ball->ReverseVelocityX();
       mScore += 100;
-
-      if (gGameInstance && gGameInstance->GetSoundEffect())
-      {
-        Mix_PlayChannel(-1, gGameInstance->GetSoundEffect(), 0);
-      }
 
       Vector2 currentVel = ball->GetVelocity();
       float currentSpeed = std::sqrt(currentVel.x * currentVel.x + currentVel.y * currentVel.y);
@@ -390,12 +464,15 @@ void GamePlayScene::CheckBallCollisions(Ball *ball)
         Vector2 screenCenter(mScreen->x / 2, mScreen->y / 2);
         Vector2 direction = screenCenter - paddlePos;
         direction.Normalize();
-        paddlePos.y += direction.y * 10.0f;
+        paddlePos.x += direction.x * 10.0f;
         direction.x *= 200.0f; // 初期速度の大きさを設定
-        direction.y += 100.0f;
+        direction.y *= 100.0f;
 
         AddBall(paddlePos, direction);
       }
+
+      // パドルとの衝突時に効果音を再生
+      Mix_PlayChannel(-1, mPaddleHitSound, 0);
     }
   }
   else
@@ -444,11 +521,12 @@ void GamePlayScene::CheckBallCollisions(Ball *ball)
         ball->SetIsCollisionX(false);
       }
 
-      if (gGameInstance && gGameInstance->GetSoundEffect())
+      if (ball->GetIsCollisionX() || ball->GetIsCollisionY())
       {
-        Mix_PlayChannel(-1, gGameInstance->GetSoundEffect(), 0);
+        obstacle->StartShake(0.15f, 3.0f);
+        // 障害物との衝突時に効果音を再生
+        Mix_PlayChannel(-1, mObstacleHitSound, 0);
       }
-      obstacle->StartShake(0.15f, 3.0f);
     }
     else
     {
@@ -471,11 +549,10 @@ void GamePlayScene::AddBall(Vector2 pos, Vector2 velocity)
 
     newBall->SetVelocity(velocity);
     mBalls.push_back(std::move(newBall));
-    std::cout << "Debug: New ball added. Total balls: " << mBalls.size() << std::endl;
   }
   catch (const std::exception &e)
   {
-    std::cerr << "Error in AddBall: " << e.what() << std::endl;
+    SDL_Log("Error in AddBall: %s", e.what());
   }
 }
 

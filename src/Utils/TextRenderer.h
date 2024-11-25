@@ -27,9 +27,8 @@ public:
   void GetTextSize(const std::string &text, int &width, int &height) const;
 
 private:
-  std::string GetFontPath(const std::string &fontPath);
-
   TTF_Font *mFont;
-  std::string mFontPath;
   int mFontSize;
+  std::string mFontPath;
+  std::string GetFontPath(const std::string &fontPath);
 };

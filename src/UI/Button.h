@@ -26,6 +26,5 @@ private:
   SDL_Color mCurrentColor;
   bool mIsHovered;
   std::function<void()> mOnClick;
-
   bool IsInside(const Vector2 &point) const;
 };
