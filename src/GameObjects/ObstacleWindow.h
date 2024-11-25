@@ -25,6 +25,16 @@ public:
   bool IsActive() const { return mIsActive; }
   Type GetType() const { return mType; }
   void HandleClick();
+  ~ObstacleWindow()
+  {
+    if (mWindow)
+    {
+      SDL_DestroyRenderer(mRenderer);
+      SDL_DestroyWindow(mWindow);
+      mWindow = nullptr;
+      mRenderer = nullptr;
+    }
+  }
 
 private:
   Type mType;

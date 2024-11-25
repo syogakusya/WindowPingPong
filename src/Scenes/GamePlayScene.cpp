@@ -9,7 +9,7 @@ const int PADDLE_HEIGHT = 100;
 const float PADDLE_SPEED = 300.0f;
 const int UI_MARGIN = 6;
 const float MAX_BALL_SPEED = 500.0f;
-const float OBSTACLE_SPAWN_INTERVAL = 5.0f; // 障害物生成間隔
+const float OBSTACLE_SPAWN_INTERVAL = 10.0f; // 障害物生成間隔
 
 extern Game *gGameInstance;
 
@@ -17,7 +17,7 @@ GamePlayScene::GamePlayScene()
     : mScore(0),
       mObstacleSpawnTimer(OBSTACLE_SPAWN_INTERVAL),
       isPaddleObstacleCollision(false),
-      mHighScoreManager("highscore.txt"),
+      mHighScoreManager("build/highscore.txt"),
       mIsGameOver(false)
 {
 }
@@ -90,14 +90,33 @@ void GamePlayScene::Initialize()
 
   mRestartButton->SetOnClick([this]()
                              {
-      // リスタート処理
-      mScore = 0;
-      // ボールの位置とスピードをリセット
-    for (auto &ball : mBalls)
+    // スコアのリセット
+    mScore = 0;
+    
+    // 既存のボールをクリア
+    mBalls.clear();
+    
+    // 新しいボールの追加
+    Vector2 ballVelocity(-120.0f, 135.0f);
+    Vector2 ballPos(mScreen->x / 2, mScreen->y / 2);
+    AddBall(ballPos, ballVelocity);
+    
+    // 障害物のクリア
+    mObstacles.clear();
+    
+    // タイマーのリセット
+    mObstacleSpawnTimer = OBSTACLE_SPAWN_INTERVAL;
+    
+    // ゲーム状態の更新
+    mCurrentState = GameState::Playing;
+    mIsGameOver = false;
+    
+    // パドルの位置リセット
+    if (mPaddle)
     {
-      ball->SetVelocity(Vector2(-120.0f, 135.0f));
-      ball->SetWorldPos(Vector2(mScreen->x / 2, mScreen->y / 2));
-      } });
+        mPaddle->SetWorldPos(Vector2(100.0f, mScreen->y / 2));
+        mPaddle->SetWindowPos(Vector2(0.0f, mScreen->y / 2 - mWindowSize / 2));
+    } });
 
   normalColor = {100, 100, 100, 255};
   hoverColor = {150, 150, 150, 255};
@@ -148,33 +167,39 @@ void GamePlayScene::HandleInput(const Uint8 *keyBoardState)
   }
   else if (mCurrentState == GameState::GameOver)
   {
-    // ゲームオーバー時の入力処理
-    if (keyBoardState[SDL_SCANCODE_SPACE])
+    static bool prevRKeyState = false;
+    bool currentRKeyState = keyBoardState[SDL_SCANCODE_R];
+
+    if (currentRKeyState && !prevRKeyState)
     {
       // リスタート処理
-      mRestartButton->HandleClick(Vector2(mScreen->x / 2 - 50 + 0, mScreen->y / 2 + 100));
-    }
-
-    // ESCキーでスタートシーンに戻る
-    if (keyBoardState[SDL_SCANCODE_ESCAPE])
-    {
-      mReturnToStartButton->HandleClick(Vector2(mScreen->x / 2 + 20 + 0, mScreen->y / 2 + 100));
-    }
-  }
-
-  bool spaceDown = keyBoardState[SDL_SCANCODE_SPACE];
-  if (spaceDown && !mPrevSpaceKeyState)
-  {
-    if (mCurrentState == GameState::Playing)
-    {
-      mCurrentState = GameState::Pause;
-    }
-    else if (mCurrentState == GameState::Pause)
-    {
+      mScore = 0;
+      mBalls.clear();
+      Vector2 ballVelocity(-120.0f, 135.0f);
+      Vector2 ballPos(mScreen->x / 2, mScreen->y / 2);
+      AddBall(ballPos, ballVelocity);
+      mObstacles.clear();
+      mObstacleSpawnTimer = OBSTACLE_SPAWN_INTERVAL;
       mCurrentState = GameState::Playing;
+      mIsGameOver = false;
+      if (mPaddle)
+      {
+        mPaddle->SetWorldPos(Vector2(100.0f, mScreen->y / 2));
+        mPaddle->SetWindowPos(Vector2(0.0f, mScreen->y / 2 - mWindowSize / 2));
+      }
     }
+    prevRKeyState = currentRKeyState;
+
+    static bool prevSpaceKeyState = false;
+    bool currentSpaceKeyState = keyBoardState[SDL_SCANCODE_SPACE];
+
+    if (currentSpaceKeyState && !prevSpaceKeyState)
+    {
+      auto startScene = std::make_unique<StartScene>();
+      SceneManager::GetInstance().ChangeScene(std::move(startScene));
+    }
+    prevSpaceKeyState = currentSpaceKeyState;
   }
-  mPrevSpaceKeyState = spaceDown;
 }
 
 void GamePlayScene::Update(float deltaTime)
@@ -208,8 +233,6 @@ void GamePlayScene::Update(float deltaTime)
 
     mPaddle->Update(deltaTime);
     UpdateObstacles(deltaTime);
-
-    
 
     for (auto &ball : mBalls)
     {
@@ -287,15 +310,15 @@ void GamePlayScene::Draw()
 
     mPixelifySansRenderer->SetFontSize(24);
     mPixelifySansRenderer->RenderText(
-        "Space: Restart",
-        mScreen->x / 2 - 490,
+        "R: Restart",
+        mScreen->x / 2 - 460,
         40,
         textColor,
         mMasterWindow->GetRenderer());
 
     mPixelifySansRenderer->RenderText(
-        "R: Return to Start",
-        mScreen->x / 2 + 270,
+        "Space: Return to Title",
+        mScreen->x / 2 + 240,
         40,
         textColor,
         mMasterWindow->GetRenderer());
@@ -339,30 +362,45 @@ void GamePlayScene::CheckBallCollisions(Ball *ball)
   }
 
   SDL_Rect paddleRect = mPaddle->GetPaddleRect();
-  if (ball->CheckBallCollision(&paddleRect) && !ball->GetIsCollisionPaddle())
+  if (ball->CheckBallCollision(&paddleRect))
   {
-    ball->SetIsCollisionPaddle(true);
-    ball->ReverseVelocityX();
-    mScore += 100;
+    // 衝突フラグがfalseの時のみ処理を行う
+    if (!ball->GetIsCollisionPaddle())
+    {
+      ball->SetIsCollisionPaddle(true);
+      ball->ReverseVelocityX();
+      mScore += 100;
 
-    if (gGameInstance && gGameInstance->GetSoundEffect())
-    {
-      Mix_PlayChannel(-1, gGameInstance->GetSoundEffect(), 0);
-    }
+      if (gGameInstance && gGameInstance->GetSoundEffect())
+      {
+        Mix_PlayChannel(-1, gGameInstance->GetSoundEffect(), 0);
+      }
 
-    Vector2 currentVel = ball->GetVelocity();
-    float currentSpeed = std::sqrt(currentVel.x * currentVel.x + currentVel.y * currentVel.y);
-    if (currentSpeed < MAX_BALL_SPEED)
-    {
-      ball->SetVelocity(currentVel * 1.02f);
-    }
-    if (mScore % 1000 == 0 && mScore != 0)
-    {
-      AddBall(Vector2(mScreen->x / 2, mScreen->y / 2), Vector2(-120.0f, 135.0f));
+      Vector2 currentVel = ball->GetVelocity();
+      float currentSpeed = std::sqrt(currentVel.x * currentVel.x + currentVel.y * currentVel.y);
+      if (currentSpeed < MAX_BALL_SPEED)
+      {
+        ball->SetVelocity(currentVel * 1.02f);
+      }
+
+      // スコアが1000点の倍数の時、パドルの位置を基準にボールを追加
+      if (mScore % 1000 == 0 && mScore != 0)
+      {
+        Vector2 paddlePos = mPaddle->GetWorldPos();
+        Vector2 screenCenter(mScreen->x / 2, mScreen->y / 2);
+        Vector2 direction = screenCenter - paddlePos;
+        direction.Normalize();
+        paddlePos.y += direction.y * 10.0f;
+        direction.x *= 200.0f; // 初期速度の大きさを設定
+        direction.y += 100.0f;
+
+        AddBall(paddlePos, direction);
+      }
     }
   }
   else
   {
+    // パドルと衝突していない場合はフラグをリセット
     ball->SetIsCollisionPaddle(false);
   }
 
@@ -410,6 +448,7 @@ void GamePlayScene::CheckBallCollisions(Ball *ball)
       {
         Mix_PlayChannel(-1, gGameInstance->GetSoundEffect(), 0);
       }
+      obstacle->StartShake(0.15f, 3.0f);
     }
     else
     {
@@ -465,7 +504,7 @@ void GamePlayScene::SpawnObstacle()
   mObstacles.push_back(std::make_unique<ObstacleWindow>(
       type == ObstacleWindow::Type::Transparent ? "Obstacle" : "Advertisement",
       pos,
-      Vector2(200, 200),
+      Vector2(mWindowSize, mWindowSize),
       type,
       duration,
       closeCount));
@@ -530,39 +569,49 @@ bool GamePlayScene::CheckObstacleCollision(const Vector2 &pos) const
 // SDL_Eventのイベントハンドラー
 void GamePlayScene::HandleEvent(const SDL_Event &event)
 {
-
   switch (event.type)
   {
   case SDL_MOUSEMOTION:
-    mLocalMousePos = Vector2(static_cast<float>(event.motion.x),
-                             static_cast<float>(event.motion.y));
-    break;
+  {
+    int x, y;
+    SDL_GetGlobalMouseState(&x, &y);
+    mLocalMousePos = Vector2(static_cast<float>(x), static_cast<float>(y));
+    mWorldMousePos = mLocalMousePos;
+
+    if (mCurrentState == GameState::GameOver)
+    {
+      mRestartButton->Update(mWorldMousePos);
+      mReturnToStartButton->Update(mWorldMousePos);
+    }
+  }
+  break;
 
   case SDL_MOUSEBUTTONDOWN:
     if (event.button.button == SDL_BUTTON_LEFT)
     {
-      mRestartButton->HandleClick(mLocalMousePos);
-      mReturnToStartButton->HandleClick(mLocalMousePos);
-    }
-    break;
+      int x, y;
+      SDL_GetGlobalMouseState(&x, &y);
+      Vector2 mousePos(static_cast<float>(x), static_cast<float>(y));
 
-  case SDL_MOUSEBUTTONUP:
-    if (event.button.button == SDL_BUTTON_LEFT)
-    {
+      if (mCurrentState == GameState::GameOver)
+      {
+        mRestartButton->HandleClick(mousePos);
+        mReturnToStartButton->HandleClick(mousePos);
+      }
     }
     break;
 
   case SDL_WINDOWEVENT:
-    if (event.window.event == SDL_WINDOWEVENT_CLOSE)
+    // 障害物ウィンドウのイベント処理
+    for (auto &obstacle : mObstacles)
     {
-      for (auto &obstacle : mObstacles)
+      if (obstacle && event.window.windowID == SDL_GetWindowID(obstacle->GetWindow()))
       {
-        if (obstacle->GetType() == ObstacleWindow::Type::Popup &&
-            SDL_GetWindowID(obstacle->GetWindow()) == event.window.windowID)
+        if (event.window.event == SDL_WINDOWEVENT_CLOSE)
         {
           obstacle->HandleClick();
-          break;
         }
+        break;
       }
     }
     break;

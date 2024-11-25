@@ -1,4 +1,5 @@
 #include "ObstacleWindow.h"
+#include <iostream>
 
 ObstacleWindow::ObstacleWindow(
     const char *windowName,
@@ -16,12 +17,29 @@ ObstacleWindow::ObstacleWindow(
       mCloseCount(closeCount),
       mCurrentCloseCount(0)
 {
+  if (mType == Type::Popup)
+  {
+    SDL_SetWindowHitTest(mWindow, nullptr, nullptr);
+  }
 }
 
 void ObstacleWindow::Update(float deltaTime)
 {
   if (!mIsActive)
     return;
+
+  SDL_Event event;
+  while (SDL_PollEvent(&event))
+  {
+    if (event.type == SDL_WINDOWEVENT &&
+        event.window.windowID == SDL_GetWindowID(mWindow))
+    {
+      if (event.window.event == SDL_WINDOWEVENT_CLOSE)
+      {
+        HandleClick();
+      }
+    }
+  }
 
   if (mType == Type::Transparent)
   {
@@ -31,8 +49,7 @@ void ObstacleWindow::Update(float deltaTime)
       mIsActive = false;
     }
   }
-
-  UpdateWindowPosition();
+  UpdateShakeEffect(deltaTime);
 }
 
 void ObstacleWindow::Draw(SDL_Renderer *renderer)
@@ -50,13 +67,13 @@ void ObstacleWindow::Draw(SDL_Renderer *renderer)
 
 void ObstacleWindow::HandleClick()
 {
+  std::cout << "HandleClick" << std::endl;
   if (mType == Type::Popup)
   {
     mCurrentCloseCount++;
     if (mCurrentCloseCount >= mCloseCount)
     {
       mIsActive = false;
-      SDL_HideWindow(mWindow);
     }
   }
 }

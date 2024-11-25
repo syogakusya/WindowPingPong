@@ -7,6 +7,7 @@
 #include "GamePlayScene.h"
 #include "../GameObjects/Ball.h"
 #include "../GameObjects/LogoWindow.h"
+#include <cmath>
 
 class StartScene : public Scene
 {

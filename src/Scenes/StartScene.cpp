@@ -90,52 +90,66 @@ void StartScene::Update(float deltaTime)
 void StartScene::CheckCollisions(Ball *ball, LogoWindow *logoWindow)
 {
   SDL_Rect logoRect = logoWindow->GetWindowRect();
+  SDL_Rect ballRect = ball->GetBallRect();
 
-  if (ball->CheckBallCollision(&logoRect))
+  if (SDL_HasIntersection(&ballRect, &logoRect))
   {
     Vector2 ballPos = ball->GetWorldPos();
+    Vector2 ballVel = ball->GetVelocity();
     Vector2 logoPos = logoWindow->GetWindowPos();
     Vector2 logoSize = logoWindow->GetWindowSize();
+    float ballSize = ball->GetBallSize();
 
-    // 上下の衝突判定
-    if (ballPos.y < logoPos.y + ball->GetBallSize() / 2.0f ||
-        ballPos.y > logoPos.y + logoSize.y - ball->GetBallSize() / 2.0f)
-    {
-      if (!prevBallReverseY)
-      {
-        ball->ReverseVelocityY();
-        prevBallReverseY = true;
-      }
-    }
-    else
-    {
-      prevBallReverseY = false;
-    }
+    // ボールの中心からロゴウィンドウの各辺までの距離を計算
+    float distLeft = std::abs(ballPos.x - logoPos.x);
+    float distRight = std::abs(ballPos.x - (logoPos.x + logoSize.x));
+    float distTop = std::abs(ballPos.y - logoPos.y);
+    float distBottom = std::abs(ballPos.y - (logoPos.y + logoSize.y));
 
-    // 左右の衝突判定
-    if (ballPos.x < logoPos.x + ball->GetBallSize() / 2.0f ||
-        ballPos.x > logoPos.x + logoSize.x - ball->GetBallSize() / 2.0f)
+    // 最も近い辺を見つける
+    float minDist = std::min(std::min(std::min(distLeft, distRight), distTop), distBottom);
+
+    if (minDist == distLeft || minDist == distRight)
     {
       if (!prevBallReverseX)
       {
         ball->ReverseVelocityX();
+        // X方向の位置修正
+        if (minDist == distLeft)
+        {
+          ball->SetWorldPos(Vector2(logoPos.x - ballSize / 2.0f, ballPos.y));
+        }
+        else
+        {
+          ball->SetWorldPos(Vector2(logoPos.x + logoSize.x + ballSize / 2.0f, ballPos.y));
+        }
         prevBallReverseX = true;
       }
     }
     else
     {
-      prevBallReverseX = false;
+      if (!prevBallReverseY)
+      {
+        ball->ReverseVelocityY();
+        // Y方向の位置修正
+        if (minDist == distTop)
+        {
+          ball->SetWorldPos(Vector2(ballPos.x, logoPos.y - ballSize / 2.0f));
+        }
+        else
+        {
+          ball->SetWorldPos(Vector2(ballPos.x, logoPos.y + logoSize.y + ballSize / 2.0f));
+        }
+        prevBallReverseY = true;
+      }
     }
+
+    logoWindow->StartShake(0.3f, 5.0f);
   }
   else
   {
     prevBallReverseX = false;
     prevBallReverseY = false;
-  }
-
-  if (prevBallReverseX || prevBallReverseY)
-  {
-    logoWindow->StartShake(0.15f, 3.0f);
   }
 }
 
@@ -167,12 +181,12 @@ void StartScene::Draw()
         mBall->GetRenderer());
   }
 
-  mPixelifySansRenderer->SetFontSize(24);
+  mPixelifySansRenderer->SetFontSize(84);
   mMasterWindow->Draw(mMasterWindow->GetRenderer());
   mPixelifySansRenderer->RenderText(
       "Press Enter to Start",
-      mScreen->x / 2 - 160,
-      MASTER_WINDOW_HEIGHT / 2 - 12,
+      mScreen->x / 2 - 480,
+      MASTER_WINDOW_HEIGHT / 2 - 48,
       textColor,
       mMasterWindow->GetRenderer());
 

@@ -8,12 +8,20 @@ Button::Button(const std::string &text, Vector2 pos, Vector2 size, SDL_Color nor
 
 void Button::HandleClick(const Vector2 &mousePos)
 {
-  SDL_Rect rect = {static_cast<int>(mPosition.x), static_cast<int>(mPosition.y),
-                   static_cast<int>(mSize.x), static_cast<int>(mSize.y)};
+  // ボタンの領域を定義
+  SDL_Rect buttonRect = {
+      static_cast<int>(mPosition.x),
+      static_cast<int>(mPosition.y),
+      static_cast<int>(mSize.x),
+      static_cast<int>(mSize.y)};
 
-  SDL_Point point = mousePos.ToSDLPoint();
+  // マウス位置をSDL_Pointとして定義
+  SDL_Point point = {
+      static_cast<int>(mousePos.x),
+      static_cast<int>(mousePos.y)};
 
-  if (SDL_PointInRect(&point, &rect))
+  // ボタンの領域内にマウスがあるかチェック
+  if (SDL_PointInRect(&point, &buttonRect))
   {
     if (mOnClick)
     {
