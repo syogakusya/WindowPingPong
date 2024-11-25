@@ -159,22 +159,20 @@ else ifeq ($(PLATFORM), mac)
 endif
 
 # 配布用のアーカイブを作成するターゲット
-dist:
+dist: all
 	@echo "配布用アーカイブを作成しています..."
-ifeq ($(OS),Windows_NT)
-	@mkdir dist
-	@xcopy /E /I /Y src dist\src
-	@xcopy /E /I /Y assets dist\assets
-	@if exist Makefile copy Makefile dist
+ifeq ($(PLATFORM), windows)
+	@if not exist dist mkdir dist
+	@xcopy /E /I /Y "$(BUILD_DIR)" dist
 	@if exist README.md copy README.md dist
-	@if exist LICENSE copy LICENSE dist
+	@if exist LICENSE.md copy LICENSE.md dist
+	@del /Q "dist\*.dll"
+	@rmdir /S /Q dist\src
 	@powershell -Command "Compress-Archive -Path 'dist\*' -DestinationPath 'WindowPingPong.zip'"
 	@rmdir /S /Q dist
 else
 	@mkdir -p dist
-	@cp -r src dist/src
-	@cp -r assets dist/assets
-	@cp Makefile dist
+	@cp -r "$(BUILD_DIR)" dist/
 	@cp README.md dist
 	@cp LICENSE dist
 	@cd dist && zip -r ../WindowPingPong.zip *
