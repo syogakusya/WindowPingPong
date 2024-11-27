@@ -157,6 +157,7 @@ make all      # 完全なリビルド
 # 実行
 make run      # ビルドして実行
 make debug    # デバッグ出力付きで実行
+make dist     # 配布用アーカイブの作成
 
 # macOS専用コマンド
 make bundle   # .appバンドルの作成
