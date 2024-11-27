@@ -521,7 +521,7 @@ void GamePlayScene::CheckBallCollisions(Ball *ball)
         ball->SetIsCollisionX(false);
       }
 
-      if (!ball->GetIsCollisionX() && !ball->GetIsCollisionY())
+      if (!ball->GetIsCollisionX() || !ball->GetIsCollisionY())
       {
         obstacle->StartShake(0.15f, 3.0f);
         // 障害物との衝突時に効果音を再生
