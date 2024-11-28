@@ -32,10 +32,22 @@ void Button::HandleClick(const Vector2 &mousePos)
 
 void Button::Update(const Vector2 &mousePos)
 {
-  SDL_Rect rect = {static_cast<int>(mPosition.x), static_cast<int>(mPosition.y),
-                   static_cast<int>(mSize.x), static_cast<int>(mSize.y)};
+  SDL_Rect rect = {
+      static_cast<int>(mPosition.x),
+      static_cast<int>(mPosition.y),
+      static_cast<int>(mSize.x),
+      static_cast<int>(mSize.y)};
   SDL_Point point = mousePos.ToSDLPoint();
   mIsHovered = SDL_PointInRect(&point, &rect);
+
+  // デバッグ出力
+  if (mIsHovered)
+  {
+    SDL_Log("Button Hovered - Mouse: (%f, %f), Button: (%f, %f, %f, %f)",
+            mousePos.x, mousePos.y,
+            mPosition.x, mPosition.y,
+            mPosition.x + mSize.x, mPosition.y + mSize.y);
+  }
 }
 
 void Button::Draw(SDL_Renderer *renderer, TextRenderer *textRenderer)

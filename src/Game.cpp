@@ -95,7 +95,7 @@ void Game::ProcessInput()
 
 void Game::UpdateGame()
 {
-  while (!SDL_TICKS_PASSED(SDL_GetTicks(), mTicksCount + 16))
+  while (!SDL_TICKS_PASSED(SDL_GetTicks(), mTicksCount + 8))
     ;
 
   float deltaTime = 0.0f;

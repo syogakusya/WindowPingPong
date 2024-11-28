@@ -651,14 +651,14 @@ void GamePlayScene::HandleEvent(const SDL_Event &event)
   case SDL_MOUSEMOTION:
   {
     int x, y;
-    SDL_GetGlobalMouseState(&x, &y);
+    SDL_GetMouseState(&x, &y); // グローバル座標ではなくウィンドウ相対座標を取得
     mLocalMousePos = Vector2(static_cast<float>(x), static_cast<float>(y));
     mWorldMousePos = mLocalMousePos;
 
     if (mCurrentState == GameState::GameOver)
     {
-      mRestartButton->Update(mWorldMousePos);
-      mReturnToStartButton->Update(mWorldMousePos);
+      mRestartButton->Update(mLocalMousePos);
+      mReturnToStartButton->Update(mLocalMousePos);
     }
   }
   break;
@@ -667,7 +667,7 @@ void GamePlayScene::HandleEvent(const SDL_Event &event)
     if (event.button.button == SDL_BUTTON_LEFT)
     {
       int x, y;
-      SDL_GetGlobalMouseState(&x, &y);
+      SDL_GetMouseState(&x, &y); // グローバル座標ではなくウィンドウ相対座標を取得
       Vector2 mousePos(static_cast<float>(x), static_cast<float>(y));
 
       if (mCurrentState == GameState::GameOver)

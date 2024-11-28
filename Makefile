@@ -175,8 +175,9 @@ ifeq ($(PLATFORM), windows)
 else
 	@mkdir -p dist
 	@cp -r "$(BUILD_DIR)" dist/
+	@rm -rf dist/build/src
 	@cp README.md dist
-	@cp LICENSE dist
+	@cp LICENSE.md dist
 	@cd dist && zip -r ../WindowPingPong.zip *
 	@rm -rf dist
 endif
