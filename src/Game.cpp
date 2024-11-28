@@ -95,11 +95,18 @@ void Game::ProcessInput()
 
 void Game::UpdateGame()
 {
+  while (!SDL_TICKS_PASSED(SDL_GetTicks(), mTicksCount + 16))
+    ;
+
   float deltaTime = 0.0f;
   Uint32 newTicks = SDL_GetTicks();
   deltaTime = static_cast<float>(newTicks - mTicksCount) / 1000.0f;
   mTicksCount = newTicks;
 
+  if (deltaTime > 0.05f)
+  {
+    deltaTime = 0.05f;
+  }
   mSceneManager.Update(deltaTime);
 }
 

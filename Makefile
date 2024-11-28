@@ -50,8 +50,8 @@ ifeq ($(PLATFORM), windows)
     DLLS := "$(SDL2_DIR)/lib/SDL2.dll" "$(SDL2_TTF_DIR)/lib/SDL2_ttf.dll" "$(SDL2_MIXER_DIR)/lib/SDL2_mixer.dll"
     CLEAN_CMD := rmdir /S /Q "$(BUILD_DIR)"
 else ifeq ($(PLATFORM), mac)
-    CFLAGS += $(shell sdl2-config --cflags) $(shell pkg-config --cflags SDL2_ttf SDL2_mixer)
-    LDFLAGS := $(shell sdl2-config --libs) $(shell pkg-config --libs SDL2_ttf SDL2_mixer)
+    CFLAGS += $(shell sdl2-config --cflags) $(shell pkg-config --cflags SDL2_ttf SDL2_mixer SDL2_image)
+    LDFLAGS := $(shell sdl2-config --libs) $(shell pkg-config --libs SDL2_ttf SDL2_mixer SDL2_image)
     LDFLAGS_DEBUG += $(LDFLAGS)
     LDFLAGS_RELEASE += $(LDFLAGS)
     APP_NAME := WindowPingPong
@@ -76,8 +76,8 @@ all: $(BUILD_DIR) copy_assets $(TARGET)
 # ビルドディレクトリの作成
 $(BUILD_DIR):
 	@echo Creating directories...
-	@if not exist "$(BUILD_DIR)" $(MKDIR) $(MKDIROPTIONS) "$(BUILD_DIR)"
 ifeq ($(PLATFORM), windows)
+	@if not exist "$(BUILD_DIR)" $(MKDIR) $(MKDIROPTIONS) "$(BUILD_DIR)"
 	$(foreach dir,$(BUILD_DIRS), $(MKDIR) $(MKDIROPTIONS) "$(dir)"$(newline))
 else
 	$(MKDIR) $(MKDIROPTIONS) $(BUILD_DIRS)
@@ -93,8 +93,8 @@ ifeq ($(PLATFORM), windows)
 		$(COPY) "$(dir)" "$(BUILD_DIR)/$(dir)"$(newline))
 else
 	$(foreach dir,$(ASSETS), \
-		$(MKDIR) $(MKDIROPTIONS) "$(BUILD_DIR)/$(dir)"; \
-		$(COPY) "$(dir)/" "$(BUILD_DIR)/$(dir)/";)
+		$(MKDIR) $(MKDIROPTIONS) "$(APP_BUNDLE)/Contents/Resources/$(dir)"; \
+		$(COPY) "$(dir)/" "$(APP_BUNDLE)/Contents/Resources/$(dir)/";)
 endif
 	@echo "アセットをコピーしました"
 
