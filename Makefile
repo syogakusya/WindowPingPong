@@ -29,7 +29,6 @@ ASSETS := assets/fonts assets/sounds assets/images
 CC := g++
 CXX := g++
 CFLAGS := -std=c++17 -Wall -Wextra
-
 # ソースファイルのリスト
 SRCS := $(wildcard src/*.cpp src/*/*.cpp src/*/*/*.cpp)
 # オブジェクトファイルのパスを定義
@@ -43,8 +42,8 @@ ifeq ($(PLATFORM), windows)
     SDL2_IMAGE_DIR := libs/SDL2_image/windows
     CFLAGS += -I$(SDL2_DIR)/include/SDL2 -I$(SDL2_TTF_DIR)/include/SDL2 -I$(SDL2_MIXER_DIR)/include/SDL2 -I$(SDL2_IMAGE_DIR)/include/SDL2
     LDFLAGS := -L$(SDL2_DIR)/lib -L$(SDL2_TTF_DIR)/lib -L$(SDL2_MIXER_DIR)/lib -L$(SDL2_IMAGE_DIR)/lib \
-               -lmingw32 -lSDL2main -lSDL2 -lSDL2_ttf -lSDL2_mixer -lSDL2_image
-    LDFLAGS_DEBUG += $(LDFLAGS)
+    -lmingw32 -lSDL2main -lSDL2 -lSDL2_ttf -lSDL2_mixer -lSDL2_image
+		LDFLAGS_DEBUG += $(LDFLAGS)
     LDFLAGS_RELEASE += $(LDFLAGS) -mwindows
     TARGET := $(BUILD_DIR)/WindowPingPong.exe
     DLLS := "$(SDL2_DIR)/lib/SDL2.dll" "$(SDL2_TTF_DIR)/lib/SDL2_ttf.dll" "$(SDL2_MIXER_DIR)/lib/SDL2_mixer.dll"
@@ -104,7 +103,10 @@ COPY_DLLS := \
     $(COPY) "$(SDL2_DIR)\bin\SDL2.dll" "$(BUILD_DIR)\"$(newline)\
     $(COPY) "$(SDL2_TTF_DIR)\bin\SDL2_ttf.dll" "$(BUILD_DIR)\"$(newline)\
     $(COPY) "$(SDL2_MIXER_DIR)\bin\SDL2_mixer.dll" "$(BUILD_DIR)\"$(newline)\
-    $(COPY) "$(SDL2_IMAGE_DIR)\bin\SDL2_image.dll" "$(BUILD_DIR)\"
+    $(COPY) "$(SDL2_IMAGE_DIR)\bin\SDL2_image.dll" "$(BUILD_DIR)\"$(newline)\
+		$(COPY) "bin\libgcc_s_seh-1.dll" "$(BUILD_DIR)\"$(newline)\
+    $(COPY) "bin\libstdc++-6.dll" "$(BUILD_DIR)\"$(newline)\
+    $(COPY) "bin\libwinpthread-1.dll" "$(BUILD_DIR)\"
 endif
 
 # ターゲットのリンク
@@ -168,7 +170,6 @@ ifeq ($(PLATFORM), windows)
 	@xcopy /E /I /Y "$(BUILD_DIR)" dist
 	@if exist README.md copy README.md dist
 	@if exist LICENSE.md copy LICENSE.md dist
-	@del /Q "dist\*.dll"
 	@rmdir /S /Q dist\src
 	@powershell -Command "Compress-Archive -Path 'dist\*' -DestinationPath 'WindowPingPong.zip'"
 	@rmdir /S /Q dist

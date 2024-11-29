@@ -51,7 +51,7 @@ void StartScene::Initialize()
   {
     char title_[2] = {title[i], '\0'};
     float posX = mScreen->x / 9 + mScreen->x / 9 * i;
-    float posY = mScreen->y / 2 + std::sin(i * 5) * 200;
+    float posY = mScreen->y / 2 + std::sin(i * 5) * mScreen->y / 10;
     auto logoWindow = std::make_unique<LogoWindow>(
         std::string(title_).c_str(),
         Vector2(posX, posY),
