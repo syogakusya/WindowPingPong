@@ -1,7 +1,5 @@
 # Windows Ping Pong
 
-![Game Screenshot](path/to/screenshot.png)
-
 ## 概要
 
 Windows Ping Pong は、クラシックなピンポンゲームに現代的なツイストを加えた、ユニークな Windows デスクトップゲームです。
