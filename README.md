@@ -85,13 +85,13 @@ make
 ### macOS
 
 ```bash
-./WindowsPingPong.app/Contents/MacOS/WindowsPingPong
+./WindowPingPong.app/Contents/MacOS/WindowPingPong
 ```
 
 or
 
 ```bash
-open ./WindowsPingPong.app
+open ./WindowPingPong.app
 ```
 
 デバッグ出力を確認したい場合は以下のコマンドを使用してください：

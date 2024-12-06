@@ -59,6 +59,10 @@ else ifeq ($(PLATFORM), mac)
     TARGET := $(APP_BUNDLE)/Contents/MacOS/$(APP_NAME)
     APP_DIRS := "$(APP_BUNDLE)/Contents/MacOS" "$(APP_BUNDLE)/Contents/Resources"
     CLEAN_CMD := rm -rf "$(BUILD_DIR)"
+    CODESIGN := codesign
+    CODESIGN_FLAGS := --force --deep --sign -
+    $(APP_BUNDLE): $(TARGET)
+	$(CODESIGN) $(CODESIGN_FLAGS) "$(APP_BUNDLE)"
 endif
 
 # デバッグとリリース用のフラグ
@@ -67,6 +71,9 @@ CFLAGS_RELEASE := $(CFLAGS)
 
 # ビルドディレクトリの設定
 BUILD_DIRS := $(sort $(dir $(OBJS)))
+
+# デフォルトターゲットをallに設定
+.DEFAULT_GOAL := all
 
 # すべてのターゲットをビルド
 all: CFLAGS := $(CFLAGS_RELEASE)
@@ -128,8 +135,16 @@ else ifeq ($(PLATFORM), mac)
 	@echo '  <string>$(APP_NAME)</string>' >> "$(APP_BUNDLE)/Contents/Info.plist"
 	@echo '  <key>CFBundleVersion</key>' >> "$(APP_BUNDLE)/Contents/Info.plist"
 	@echo '  <string>1.0</string>' >> "$(APP_BUNDLE)/Contents/Info.plist"
+	@echo '  <key>LSMinimumSystemVersion</key>' >> "$(APP_BUNDLE)/Contents/Info.plist"
+	@echo '  <string>10.13</string>' >> "$(APP_BUNDLE)/Contents/Info.plist"
+	@echo '  <key>NSHighResolutionCapable</key>' >> "$(APP_BUNDLE)/Contents/Info.plist"
+	@echo '  <true/>' >> "$(APP_BUNDLE)/Contents/Info.plist"
+	@echo '  <key>CFBundlePackageType</key>' >> "$(APP_BUNDLE)/Contents/Info.plist"
+	@echo '  <string>APPL</string>' >> "$(APP_BUNDLE)/Contents/Info.plist"
 	@echo '</dict>' >> "$(APP_BUNDLE)/Contents/Info.plist"
 	@echo '</plist>' >> "$(APP_BUNDLE)/Contents/Info.plist"
+	@chmod +x "$(APP_BUNDLE)/Contents/MacOS/$(APP_NAME)"
+	@xattr -cr "$(APP_BUNDLE)"
 endif
 
 # オブジェクトファイルのコンパイルルール
